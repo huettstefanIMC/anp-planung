@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANP Externe Lehraufträge</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #ffffff; --border: #e2e5ea;
+    --accent: #0e7490; --accent-light: #ecfeff;
+    --text: #1e293b; --muted: #64748b;
+    --shadow: 0 1px 3px rgba(0,0,0,.08); --radius: 10px;
+  }
+  .cat-umit   { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+  .cat-inc    { background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe; }
+  .cat-rk     { background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
+  .cat-fhcw   { background:#fffbeb; color:#b45309; border-color:#fde68a; }
+  .cat-fhg    { background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+  .cat-andere { background:#f8fafc; color:#334155; border-color:#cbd5e1; }
+
+  .status-select {
+    font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 20px;
+    border: 1px solid; white-space: nowrap; cursor: pointer; flex-shrink: 0;
+    outline: none; appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='%23888' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 6px center; padding-right: 18px;
+  }
+  .status-select.s-nicht-begonnen { background-color:#f1f5f9; color:#475569; border-color:#cbd5e1; }
+  .status-select.s-in-arbeit      { background-color:#fffbeb; color:#b45309; border-color:#fde68a; }
+  .status-select.s-fertig         { background-color:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+  /* SETUP BANNER */
+  #setup-banner { background:#fef9c3; border-bottom:1px solid #fde68a; padding:12px 24px; font-size:13px; display:none; }
+  #setup-banner h3 { margin-bottom:8px; font-size:14px; }
+  .setup-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:6px; }
+  .setup-input { flex:1; min-width:200px; border:1px solid #fde68a; border-radius:6px; padding:6px 10px; font-size:12px; font-family:inherit; outline:none; background:white; }
+  .setup-input:focus { border-color:#d97706; }
+  .btn-setup { background:#d97706; color:white; border:none; border-radius:6px; padding:6px 14px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .btn-setup:hover { opacity:.85; }
+  .setup-help { font-size:11px; color:#92400e; margin-top:6px; }
+  .setup-help a { color:#92400e; }
+
+  /* HEADER */
+  header { background:var(--card); border-bottom:1px solid var(--border); padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px; position:sticky; top:0; z-index:100; box-shadow:var(--shadow); }
+  .header-left { display:flex; align-items:center; gap:12px; }
+  .logo { width:36px; height:36px; background:var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:16px; flex-shrink:0; }
+  h1 { font-size:18px; font-weight:700; }
+  .header-right { display:flex; align-items:center; gap:10px; }
+
+  #sync-status { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); padding:3px 9px; border-radius:20px; border:1px solid var(--border); background:var(--bg); white-space:nowrap; }
+  #sync-dot { width:7px; height:7px; border-radius:50%; background:#cbd5e1; }
+  #sync-dot.ok { background:#10b981; }
+  #sync-dot.syncing { background:#f59e0b; animation:pulse .8s infinite; }
+  #sync-dot.error { background:#dc2626; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  #btn-settings { background:none; border:1px solid var(--border); border-radius:6px; padding:4px 8px; cursor:pointer; font-size:14px; color:var(--muted); transition:background .15s; }
+  #btn-settings:hover { background:var(--border); }
+
+  .year-nav { display:flex; align-items:center; gap:8px; }
+  .year-nav button { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:16px; line-height:1; color:var(--text); transition:background .15s; }
+  .year-nav button:hover { background:var(--border); }
+  .year-label { font-weight:600; font-size:15px; min-width:50px; text-align:center; }
+
+  .legend { display:flex; flex-wrap:wrap; gap:8px 14px; padding:10px 24px; background:var(--card); border-bottom:1px solid var(--border); align-items:center; }
+  .legend-group { display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; }
+  .legend-label { font-size:12px; color:var(--muted); font-weight:600; white-space:nowrap; }
+  .legend-sep { width:1px; height:16px; background:var(--border); }
+  .legend-item { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); }
+  .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; padding:20px 24px; max-width:1600px; margin:0 auto; }
+  .month-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; }
+  .month-header { padding:12px 16px 10px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .month-name { font-weight:700; font-size:15px; }
+  .month-count { font-size:12px; color:var(--muted); background:var(--bg); border-radius:20px; padding:1px 8px; }
+  .month-current { border-top:3px solid var(--accent); }
+  .month-current .month-name { color:var(--accent); }
+
+  .task-list { flex:1; padding:10px 12px; display:flex; flex-direction:column; gap:5px; max-height:380px; overflow-y:auto; }
+  .task-list::-webkit-scrollbar { width:4px; }
+  .task-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:99px; }
+
+  .task-item { display:flex; align-items:flex-start; gap:7px; padding:7px 9px; border-radius:7px; border:1px solid transparent; }
+  .task-item:hover { filter:brightness(.97); }
+  .task-text { flex:1; font-size:13px; line-height:1.4; word-break:break-word; cursor:text; outline:none; }
+  .task-text:focus { background:rgba(255,255,255,.6); border-radius:4px; }
+  .recurring-badge { font-size:10px; opacity:.6; flex-shrink:0; margin-top:3px; }
+  .task-actions { display:none; gap:3px; flex-shrink:0; }
+  .task-item:hover .task-actions { display:flex; }
+  .task-btn { background:none; border:none; cursor:pointer; padding:2px 4px; border-radius:4px; font-size:11px; color:var(--muted); line-height:1; transition:background .15s,color .15s; }
+  .task-btn:hover { background:rgba(0,0,0,.08); color:var(--text); }
+  .task-btn.delete:hover { color:#dc2626; }
+
+  .tasks-divider { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; padding:4px 2px 2px; border-top:1px dashed var(--border); margin-top:4px; }
+
+  .add-area { padding:8px 12px 12px; border-top:1px solid var(--border); }
+  .add-btn { width:100%; background:none; border:1.5px dashed var(--border); border-radius:7px; padding:7px 12px; text-align:left; color:var(--muted); cursor:pointer; font-size:13px; transition:border-color .15s,color .15s,background .15s; }
+  .add-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+  .add-form { display:none; flex-direction:column; gap:8px; }
+  .add-form.open { display:flex; }
+  .add-input { width:100%; border:1.5px solid var(--border); border-radius:7px; padding:7px 10px; font-size:13px; font-family:inherit; color:var(--text); resize:none; outline:none; transition:border-color .15s; }
+  .add-input:focus { border-color:var(--accent); }
+  .add-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .cat-select { flex:1; border:1.5px solid var(--border); border-radius:7px; padding:5px 7px; font-size:12px; font-family:inherit; color:var(--text); background:white; outline:none; cursor:pointer; min-width:110px; }
+  .cat-select:focus { border-color:var(--accent); }
+  .recur-label { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); cursor:pointer; padding:4px 0; }
+  .recur-label input { cursor:pointer; accent-color:var(--accent); }
+  .recur-hint { font-size:11px; color:var(--accent); background:var(--accent-light); border-radius:5px; padding:4px 8px; }
+  .form-btns { display:flex; gap:6px; }
+  .btn-save { background:var(--accent); color:white; border:none; border-radius:7px; padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer; transition:opacity .15s; }
+  .btn-save:hover { opacity:.85; }
+  .btn-cancel { background:var(--bg); color:var(--muted); border:1px solid var(--border); border-radius:7px; padding:6px 10px; font-size:13px; cursor:pointer; transition:background .15s; }
+  .btn-cancel:hover { background:var(--border); }
+  .empty-hint { text-align:center; color:var(--muted); font-size:12px; padding:12px 0 4px; font-style:italic; }
+  footer { text-align:center; padding:20px; color:var(--muted); font-size:12px; }
+  #loading { text-align:center; padding:60px; color:var(--muted); font-size:14px; }
+</style>
+</head>
+<body>
+
+<div id="setup-banner">
+  <h3>☁️ Supabase einrichten – Geräteübergreifende Synchronisation</h3>
+  <div class="setup-row">
+    <input class="setup-input" id="sb-url" placeholder="Project URL  (z.B. https://abcxyz.supabase.co)" autocomplete="off">
+    <input class="setup-input" id="sb-key" placeholder="Anon / Public Key" autocomplete="off">
+    <button class="btn-setup" id="btn-save-setup">Verbinden</button>
+    <button class="btn-setup" style="background:#64748b" id="btn-skip-setup">Nur lokal</button>
+  </div>
+  <div class="setup-help">
+    Project URL und Anon Key findest du in deinem Supabase-Projekt unter <strong>Settings → API</strong>.
+    <a href="https://supabase.com" target="_blank">→ supabase.com</a>
+  </div>
+</div>
+
+<header>
+  <div class="header-left">
+    <div class="logo">L</div>
+    <h1>Externe Lehraufträge</h1>
+  </div>
+  <div class="header-right">
+    <div id="sync-status"><span id="sync-dot"></span><span id="sync-text">lokal</span></div>
+    <button id="btn-settings" title="Supabase-Einstellungen">⚙️</button>
+    <div class="year-nav">
+      <button id="prevYear">‹</button>
+      <div class="year-label" id="yearLabel"></div>
+      <button id="nextYear">›</button>
+    </div>
+  </div>
+</header>
+
+<div class="legend">
+  <span class="legend-label">Institution:</span>
+  <div class="legend-group">
+    <span class="legend-item"><span class="legend-dot" style="background:#2563eb"></span>UMIT</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#7c3aed"></span>INC</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#dc2626"></span>Rotes Kreuz</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#d97706"></span>FHCW</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#059669"></span>FhG</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#475569"></span>Andere</span>
+  </div>
+  <div class="legend-sep"></div>
+  <span class="legend-label">Status der Vorbereitung:</span>
+  <div class="legend-group">
+    <span class="legend-item"><span class="status-select s-nicht-begonnen" style="cursor:default;pointer-events:none">Nicht begonnen</span></span>
+    <span class="legend-item"><span class="status-select s-in-arbeit" style="cursor:default;pointer-events:none">In Arbeit</span></span>
+    <span class="legend-item"><span class="status-select s-fertig" style="cursor:default;pointer-events:none">Fertig</span></span>
+  </div>
+  <div class="legend-sep"></div>
+  <span class="legend-item">🔁 = jährlich wiederkehrend</span>
+</div>
+
+<div id="loading">Lade Daten …</div>
+<div class="grid" id="grid" style="display:none"></div>
+<footer>ANP Externe Lehraufträge · Wiederkehrende Einträge erscheinen automatisch jedes Jahr</footer>
+
+<script>
+// ═══════════════════════════════════════════════
+// KONFIGURATION
+// ═══════════════════════════════════════════════
+const TEMPLATE_KEY = 'anp_la_template';
+function yearKey(y) { return `anp_la_${y}`; }
+
+const MONTHS = [
+  { key:'jan', label:'Jänner',    idx:0  }, { key:'feb', label:'Februar',   idx:1  },
+  { key:'mar', label:'März',      idx:2  }, { key:'apr', label:'April',     idx:3  },
+  { key:'mai', label:'Mai',       idx:4  }, { key:'jun', label:'Juni',      idx:5  },
+  { key:'jul', label:'Juli',      idx:6  }, { key:'aug', label:'August',    idx:7  },
+  { key:'sep', label:'September', idx:8  }, { key:'okt', label:'Oktober',   idx:9  },
+  { key:'nov', label:'November',  idx:10 }, { key:'dez', label:'Dezember',  idx:11 },
+];
+const CATEGORIES = [
+  { key:'umit',   label:'UMIT',        cls:'cat-umit'   },
+  { key:'inc',    label:'INC',         cls:'cat-inc'    },
+  { key:'rk',     label:'Rotes Kreuz', cls:'cat-rk'     },
+  { key:'fhcw',   label:'FHCW',        cls:'cat-fhcw'   },
+  { key:'fhg',    label:'FhG',         cls:'cat-fhg'    },
+  { key:'andere', label:'Andere',      cls:'cat-andere' },
+];
+const STATUSES = ['nicht-begonnen', 'in-arbeit', 'fertig'];
+const STATUS_LABEL = { 'nicht-begonnen':'Nicht begonnen', 'in-arbeit':'In Arbeit', 'fertig':'Fertig' };
+const STATUS_ORDER = { 'nicht-begonnen':0, 'in-arbeit':1, 'fertig':2 };
+
+// ═══════════════════════════════════════════════
+// SUPABASE SYNC  (gleiche Credentials wie Jahresplan!)
+// ═══════════════════════════════════════════════
+let sb = null;
+
+// Supabase-Projekt: ANP-Jahresplan — Zugangsdaten vorbelegt
+(function seedCredentials() {
+  if (!localStorage.getItem('sb_url')) {
+    localStorage.setItem('sb_url', 'https://rshzagxtsftdairoyfil.supabase.co');
+  }
+  if (!localStorage.getItem('sb_key')) {
+    localStorage.setItem('sb_key', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzaHphZ3h0c2Z0ZGFpcm95ZmlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3ODY0MzksImV4cCI6MjA5ODM2MjQzOX0.waKxJ8w1fZICa4t2oWImJuk4nWcuDlAeTT7Dcpmt5RM');
+  }
+})();
+
+function getSbCreds() {
+  return { url: localStorage.getItem('sb_url')||'', key: localStorage.getItem('sb_key')||'' };
+}
+
+function initSupabase() {
+  const { url, key } = getSbCreds();
+  if (url && key) {
+    try { sb = supabase.createClient(url, key); setSyncStatus('ok','verbunden'); return true; }
+    catch { sb = null; }
+  }
+  setSyncStatus('off','lokal'); return false;
+}
+
+function setSyncStatus(state, text) {
+  const dot=document.getElementById('sync-dot'), txt=document.getElementById('sync-text');
+  if (!dot) return;
+  dot.className = state==='ok'?'ok':state==='syncing'?'syncing':state==='error'?'error':'';
+  txt.textContent = text;
+}
+
+async function dbGet(key) {
+  if (!sb) return null;
+  try {
+    const { data, error } = await sb.from('plan_data').select('data').eq('key', key).maybeSingle();
+    if (error||!data) return null; return data.data;
+  } catch { return null; }
+}
+
+async function dbSet(key, value) {
+  if (!sb) return;
+  setSyncStatus('syncing','synchronisiert …');
+  try {
+    const { error } = await sb.from('plan_data').upsert({ key, data: value, updated_at: new Date().toISOString() }, { onConflict:'key' });
+    if (error) throw error;
+    setSyncStatus('ok','synchronisiert');
+  } catch (e) { console.warn('Sync error:', e); setSyncStatus('error','Sync-Fehler'); }
+}
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let currentYear = new Date().getFullYear();
+let template = {}, yearData = {};
+
+async function loadAll() {
+  if (sb) {
+    setSyncStatus('syncing','lädt …');
+    const [tmpl, yd] = await Promise.all([dbGet(TEMPLATE_KEY), dbGet(yearKey(currentYear))]);
+    template = tmpl || tryParse(localStorage.getItem(TEMPLATE_KEY)) || {};
+    yearData  = yd   || tryParse(localStorage.getItem(yearKey(currentYear))) || {};
+    localStorage.setItem(TEMPLATE_KEY, JSON.stringify(template));
+    localStorage.setItem(yearKey(currentYear), JSON.stringify(yearData));
+    setSyncStatus('ok','synchronisiert');
+  } else {
+    template = tryParse(localStorage.getItem(TEMPLATE_KEY)) || {};
+    yearData  = tryParse(localStorage.getItem(yearKey(currentYear))) || {};
+  }
+  if (!yearData.tasks)          yearData.tasks = {};
+  if (!yearData.templateStatus) yearData.templateStatus = {};
+}
+
+function tryParse(s) { try { return s ? JSON.parse(s) : null; } catch { return null; } }
+
+function saveTemplate() { localStorage.setItem(TEMPLATE_KEY, JSON.stringify(template)); dbSet(TEMPLATE_KEY, template); }
+function saveYearData()  { localStorage.setItem(yearKey(currentYear), JSON.stringify(yearData)); dbSet(yearKey(currentYear), yearData); }
+
+// ═══════════════════════════════════════════════
+// TASK HELPERS
+// ═══════════════════════════════════════════════
+function getTemplateTasks(k) { return template[k] || []; }
+function addTemplateTask(k, text, cat) {
+  if (!template[k]) template[k] = [];
+  template[k].push({ id: uid(), text, cat });
+  saveTemplate();
+}
+function updateTemplateTask(k, id, changes) {
+  const t = (template[k]||[]).find(t => t.id===id);
+  if (t) { Object.assign(t, changes); saveTemplate(); }
+}
+function deleteTemplateTask(k, id) {
+  template[k] = (template[k]||[]).filter(t => t.id!==id);
+  saveTemplate();
+}
+function getTemplateStatus(id) { return yearData.templateStatus[id] || 'nicht-begonnen'; }
+function setTemplateStatus(id, status) { yearData.templateStatus[id] = status; saveYearData(); }
+function getYearTasks(k) { return yearData.tasks[k] || []; }
+function addYearTask(k, text, cat) {
+  if (!yearData.tasks[k]) yearData.tasks[k] = [];
+  yearData.tasks[k].push({ id: uid(), text, cat, status: 'nicht-begonnen' });
+  saveYearData();
+}
+function updateYearTask(k, id, changes) {
+  const t = (yearData.tasks[k]||[]).find(t => t.id===id);
+  if (t) { Object.assign(t, changes); saveYearData(); }
+}
+function deleteYearTask(k, id) {
+  yearData.tasks[k] = (yearData.tasks[k]||[]).filter(t => t.id!==id);
+  saveYearData();
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+// ═══════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════
+function render() {
+  document.getElementById('loading').style.display = 'none';
+  const grid = document.getElementById('grid');
+  grid.style.display = '';
+  document.getElementById('yearLabel').textContent = currentYear;
+  grid.innerHTML = '';
+
+  MONTHS.forEach(m => {
+    const tTasks=getTemplateTasks(m.key), yTasks=getYearTasks(m.key);
+    const pendingCount = tTasks.filter(t => getTemplateStatus(t.id)!=='fertig').length
+                       + yTasks.filter(t => (t.status||'nicht-begonnen')!=='fertig').length;
+    const isCurrent = new Date().getMonth()===m.idx && new Date().getFullYear()===currentYear;
+
+    const card = document.createElement('div');
+    card.className = 'month-card' + (isCurrent ? ' month-current' : '');
+    card.innerHTML = `
+      <div class="month-header">
+        <span class="month-name">${m.label}</span>
+        <span class="month-count" id="count-${m.key}">${pendingCount} offen</span>
+      </div>
+      <div class="task-list" id="list-${m.key}"></div>
+      <div class="add-area">
+        <button class="add-btn" id="addbtn-${m.key}">+ Eintrag hinzufügen</button>
+        <div class="add-form" id="addform-${m.key}">
+          <textarea class="add-input" id="addinput-${m.key}" rows="2" placeholder="Lehrauftrag / Aufgabe beschreiben …"></textarea>
+          <div class="add-row">
+            <select class="cat-select" id="addcat-${m.key}">
+              ${CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join('')}
+            </select>
+          </div>
+          <label class="recur-label">
+            <input type="checkbox" id="addrecur-${m.key}"> 🔁 Jährlich wiederholen
+          </label>
+          <div class="recur-hint" id="recurhint-${m.key}" style="display:none">Dieser Eintrag erscheint automatisch in jedem Kalenderjahr.</div>
+          <div class="form-btns">
+            <button class="btn-save" id="addsave-${m.key}">Speichern</button>
+            <button class="btn-cancel" id="addcancel-${m.key}">Abbrechen</button>
+          </div>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+    renderTaskList(m.key);
+    wireForm(m.key);
+  });
+}
+
+function renderTaskList(k) {
+  const list = document.getElementById(`list-${k}`);
+  if (!list) return;
+  list.innerHTML = '';
+  const tTasks=getTemplateTasks(k), yTasks=getYearTasks(k);
+  const allTasks = [
+    ...tTasks.map(t => ({ ...t, _status: getTemplateStatus(t.id), _recur: true  })),
+    ...yTasks.map(t => ({ ...t, _status: t.status||'nicht-begonnen', _recur: false })),
+  ].sort((a, b) => (STATUS_ORDER[a._status]??0) - (STATUS_ORDER[b._status]??0));
+
+  if (!allTasks.length) {
+    list.innerHTML = '<div class="empty-hint">Noch keine Einträge</div>';
+    updateCount(k); return;
+  }
+  let lastStatus = null;
+  allTasks.forEach(task => {
+    if (task._status==='fertig' && lastStatus!=='fertig') {
+      const d=document.createElement('div'); d.className='tasks-divider'; d.textContent='Fertig'; list.appendChild(d);
+    }
+    lastStatus = task._status;
+    list.appendChild(buildTaskEl(k, task));
+  });
+  updateCount(k);
+}
+
+function buildTaskEl(k, task) {
+  const cat = CATEGORIES.find(c => c.key===task.cat) || CATEGORIES[5];
+  const status = task._status;
+  const item = document.createElement('div');
+  item.className = `task-item ${cat.cls}`;
+  item.innerHTML = `
+    <div class="task-text" contenteditable="true" spellcheck="true">${escHtml(task.text)}</div>
+    ${task._recur ? '<span class="recurring-badge" title="Jährlich wiederkehrend">🔁</span>' : ''}
+    <select class="status-select s-${status}" title="Status der Vorbereitung">
+      ${STATUSES.map(s => `<option value="${s}"${s===status?' selected':''}>${STATUS_LABEL[s]}</option>`).join('')}
+    </select>
+    <div class="task-actions"><button class="task-btn delete" title="${task._recur?'Aus allen Jahren entfernen':'Löschen'}">✕</button></div>`;
+
+  const sel = item.querySelector('.status-select');
+  sel.addEventListener('change', () => {
+    const ns = sel.value;
+    sel.className = `status-select s-${ns}`;
+    task._recur ? setTemplateStatus(task.id, ns) : updateYearTask(k, task.id, { status: ns });
+    renderTaskList(k);
+  });
+
+  const textEl = item.querySelector('.task-text');
+  textEl.addEventListener('blur', () => {
+    const t = textEl.innerText.trim();
+    if (!t) { textEl.innerText=task.text; return; }
+    if (t===task.text) return;
+    task._recur ? updateTemplateTask(k, task.id, { text:t }) : updateYearTask(k, task.id, { text:t });
+  });
+  textEl.addEventListener('keydown', e => {
+    if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); textEl.blur(); }
+    if (e.key==='Escape') { textEl.innerText=task.text; textEl.blur(); }
+  });
+
+  item.querySelector('.delete').addEventListener('click', () => {
+    const msg = task._recur ? `"${task.text}" aus ALLEN Jahren entfernen?` : `"${task.text}" löschen?`;
+    if (confirm(msg)) { task._recur ? deleteTemplateTask(k, task.id) : deleteYearTask(k, task.id); renderTaskList(k); }
+  });
+  return item;
+}
+
+function updateCount(k) {
+  const el = document.getElementById(`count-${k}`);
+  if (!el) return;
+  const tP = getTemplateTasks(k).filter(t => getTemplateStatus(t.id)!=='fertig').length;
+  const yP = getYearTasks(k).filter(t => (t.status||'nicht-begonnen')!=='fertig').length;
+  el.textContent = `${tP+yP} offen`;
+}
+
+function wireForm(k) {
+  const addBtn=document.getElementById(`addbtn-${k}`), addForm=document.getElementById(`addform-${k}`);
+  const addInput=document.getElementById(`addinput-${k}`), recurCb=document.getElementById(`addrecur-${k}`);
+  const recurHint=document.getElementById(`recurhint-${k}`);
+  addBtn.addEventListener('click', () => { addBtn.style.display='none'; addForm.classList.add('open'); addInput.focus(); });
+  recurCb.addEventListener('change', () => { recurHint.style.display=recurCb.checked?'block':'none'; });
+  document.getElementById(`addcancel-${k}`).addEventListener('click', () => closeForm(k));
+  document.getElementById(`addsave-${k}`).addEventListener('click', () => {
+    const text=addInput.value.trim(); if (!text) return;
+    const cat=document.getElementById(`addcat-${k}`).value;
+    recurCb.checked ? addTemplateTask(k,text,cat) : addYearTask(k,text,cat);
+    closeForm(k); renderTaskList(k);
+  });
+  addInput.addEventListener('keydown', e => {
+    if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); document.getElementById(`addsave-${k}`).click(); }
+    if (e.key==='Escape') closeForm(k);
+  });
+}
+
+function closeForm(k) {
+  const el = s => document.getElementById(s);
+  if (el(`addbtn-${k}`))    el(`addbtn-${k}`).style.display = '';
+  if (el(`addform-${k}`))   el(`addform-${k}`).classList.remove('open');
+  if (el(`addinput-${k}`))  el(`addinput-${k}`).value = '';
+  if (el(`addrecur-${k}`))  el(`addrecur-${k}`).checked = false;
+  if (el(`recurhint-${k}`)) el(`recurhint-${k}`).style.display = 'none';
+}
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ═══════════════════════════════════════════════
+// SETUP UI
+// ═══════════════════════════════════════════════
+function showSetupBanner() {
+  document.getElementById('setup-banner').style.display = 'block';
+  const { url, key } = getSbCreds();
+  document.getElementById('sb-url').value = url;
+  document.getElementById('sb-key').value = key;
+}
+function hideSetupBanner() { document.getElementById('setup-banner').style.display = 'none'; }
+
+document.getElementById('btn-save-setup').addEventListener('click', async () => {
+  const url=document.getElementById('sb-url').value.trim(), key=document.getElementById('sb-key').value.trim();
+  if (!url||!key) { alert('Bitte beide Felder ausfüllen.'); return; }
+  localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
+  hideSetupBanner(); initSupabase();
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('grid').style.display = 'none';
+  await loadAll(); render();
+});
+document.getElementById('btn-skip-setup').addEventListener('click', () => {
+  hideSetupBanner();
+  if (!document.getElementById('grid').children.length) render();
+});
+document.getElementById('btn-settings').addEventListener('click', () => showSetupBanner());
+
+// ═══════════════════════════════════════════════
+// YEAR NAV
+// ═══════════════════════════════════════════════
+document.getElementById('prevYear').addEventListener('click', async () => {
+  currentYear--;
+  document.getElementById('loading').style.display='block';
+  document.getElementById('grid').style.display='none';
+  await loadAll(); render();
+});
+document.getElementById('nextYear').addEventListener('click', async () => {
+  currentYear++;
+  document.getElementById('loading').style.display='block';
+  document.getElementById('grid').style.display='none';
+  await loadAll(); render();
+});
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+(async () => {
+  const configured = initSupabase();
+  if (!configured) showSetupBanner();
+  await loadAll();
+  render();
+})();
+</script>
+</body>
+</html>
