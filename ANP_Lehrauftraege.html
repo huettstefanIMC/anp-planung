@@ -3,526 +3,1339 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ANP Externe Lehraufträge</title>
+<title>ANP Externe Lehraufträge & Lehrveranstaltungsplaner</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-  :root {
-    --bg: #f4f5f7; --card: #ffffff; --border: #e2e5ea;
-    --accent: #0e7490; --accent-light: #ecfeff;
-    --text: #1e293b; --muted: #64748b;
-    --shadow: 0 1px 3px rgba(0,0,0,.08); --radius: 10px;
-  }
-  .cat-umit   { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
-  .cat-inc    { background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe; }
-  .cat-rk     { background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
-  .cat-fhcw   { background:#fffbeb; color:#b45309; border-color:#fde68a; }
-  .cat-fhg    { background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
-  .cat-andere { background:#f8fafc; color:#334155; border-color:#cbd5e1; }
+:root {
+--bg: #f4f5f7; --card: #ffffff; --border: #e2e5ea;
+--accent: #0e7490; --accent-light: #ecfeff;
+--text: #1e293b; --muted: #64748b;
+--shadow: 0 1px 3px rgba(0,0,0,.08); --radius: 10px;
+--primary: #6b4f9e; --primary-dark: #52397d;
+--danger: #b5482f; --success: #4a7a5b;
+}
+.cat-umit { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+.cat-inc { background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe; }
+.cat-rk { background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
+.cat-fhcw { background:#fffbeb; color:#b45309; border-color:#fde68a; }
+.cat-fhg { background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+.cat-andere { background:#f8fafc; color:#334155; border-color:#cbd5e1; }
 
-  .status-select {
-    font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 20px;
-    border: 1px solid; white-space: nowrap; cursor: pointer; flex-shrink: 0;
-    outline: none; appearance: none; -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='%23888' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 6px center; padding-right: 18px;
-  }
-  .status-select.s-nicht-begonnen { background-color:#f1f5f9; color:#475569; border-color:#cbd5e1; }
-  .status-select.s-in-arbeit      { background-color:#fffbeb; color:#b45309; border-color:#fde68a; }
-  .status-select.s-fertig         { background-color:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+.status-select {
+font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 20px;
+border: 1px solid; white-space: nowrap; cursor: pointer; flex-shrink: 0;
+outline: none; appearance: none; -webkit-appearance: none;
+background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='%23888' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E");
+background-repeat: no-repeat; background-position: right 6px center; padding-right: 18px;
+}
+.status-select.s-nicht-begonnen { background-color:#f1f5f9; color:#475569; border-color:#cbd5e1; }
+.status-select.s-in-arbeit { background-color:#fffbeb; color:#b45309; border-color:#fde68a; }
+.status-select.s-fertig { background-color:#ecfdf5; color:#047857; border-color:#a7f3d0; }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
 
-  /* SETUP BANNER */
-  #setup-banner { background:#fef9c3; border-bottom:1px solid #fde68a; padding:12px 24px; font-size:13px; display:none; }
-  #setup-banner h3 { margin-bottom:8px; font-size:14px; }
-  .setup-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:6px; }
-  .setup-input { flex:1; min-width:200px; border:1px solid #fde68a; border-radius:6px; padding:6px 10px; font-size:12px; font-family:inherit; outline:none; background:white; }
-  .setup-input:focus { border-color:#d97706; }
-  .btn-setup { background:#d97706; color:white; border:none; border-radius:6px; padding:6px 14px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; }
-  .btn-setup:hover { opacity:.85; }
-  .setup-help { font-size:11px; color:#92400e; margin-top:6px; }
-  .setup-help a { color:#92400e; }
+/* SETUP BANNER */
+#setup-banner { background:#fef9c3; border-bottom:1px solid #fde68a; padding:12px 24px; font-size:13px; display:none; }
+#setup-banner h3 { margin-bottom:8px; font-size:14px; }
+.setup-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:6px; }
+.setup-input { flex:1; min-width:200px; border:1px solid #fde68a; border-radius:6px; padding:6px 10px; font-size:12px; font-family:inherit; outline:none; background:white; }
+.setup-input:focus { border-color:#d97706; }
+.btn-setup { background:#d97706; color:white; border:none; border-radius:6px; padding:6px 14px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; }
+.btn-setup:hover { opacity:.85; }
+.setup-help { font-size:11px; color:#92400e; margin-top:6px; }
+.setup-help a { color:#92400e; }
 
-  /* HEADER */
-  header { background:var(--card); border-bottom:1px solid var(--border); padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px; position:sticky; top:0; z-index:100; box-shadow:var(--shadow); }
-  .header-left { display:flex; align-items:center; gap:12px; }
-  .logo { width:36px; height:36px; background:var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:16px; flex-shrink:0; }
-  h1 { font-size:18px; font-weight:700; }
-  .header-right { display:flex; align-items:center; gap:10px; }
+/* HEADER */
+header { background:var(--card); border-bottom:1px solid var(--border); padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px; position:sticky; top:0; z-index:100; box-shadow:var(--shadow); }
+.header-left { display:flex; align-items:center; gap:12px; }
+.logo { width:36px; height:36px; background:var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:16px; flex-shrink:0; }
+h1 { font-size:18px; font-weight:700; }
+h1 span { color:var(--muted); font-weight:400; font-size:14px; margin-left:6px; }
+.header-right { display:flex; align-items:center; gap:10px; }
 
-  #sync-status { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); padding:3px 9px; border-radius:20px; border:1px solid var(--border); background:var(--bg); white-space:nowrap; }
-  #sync-dot { width:7px; height:7px; border-radius:50%; background:#cbd5e1; }
-  #sync-dot.ok { background:#10b981; }
-  #sync-dot.syncing { background:#f59e0b; animation:pulse .8s infinite; }
-  #sync-dot.error { background:#dc2626; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.view-switch { display:flex; gap:3px; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:3px; }
+.view-btn { background:none; border:none; padding:5px 12px; border-radius:6px; font-size:12.5px; font-weight:600; color:var(--muted); cursor:pointer; white-space:nowrap; }
+.view-btn.active { background:var(--card); color:var(--text); box-shadow:var(--shadow); }
+.cross-link { font-size:12.5px; color:var(--muted); text-decoration:none; padding:4px 9px; border-radius:6px; border:1px solid var(--border); white-space:nowrap; }
+.cross-link:hover { background:var(--bg); color:var(--text); }
 
-  #btn-settings { background:none; border:1px solid var(--border); border-radius:6px; padding:4px 8px; cursor:pointer; font-size:14px; color:var(--muted); transition:background .15s; }
-  #btn-settings:hover { background:var(--border); }
+#sync-status { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); padding:3px 9px; border-radius:20px; border:1px solid var(--border); background:var(--bg); white-space:nowrap; }
+#sync-dot { width:7px; height:7px; border-radius:50%; background:#cbd5e1; }
+#sync-dot.ok { background:#10b981; }
+#sync-dot.syncing { background:#f59e0b; animation:pulse .8s infinite; }
+#sync-dot.error { background:#dc2626; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-  .year-nav { display:flex; align-items:center; gap:8px; }
-  .year-nav button { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:16px; line-height:1; color:var(--text); transition:background .15s; }
-  .year-nav button:hover { background:var(--border); }
-  .year-label { font-weight:600; font-size:15px; min-width:50px; text-align:center; }
+#btn-settings { background:none; border:1px solid var(--border); border-radius:6px; padding:4px 8px; cursor:pointer; font-size:14px; color:var(--muted); transition:background .15s; }
+#btn-settings:hover { background:var(--border); }
 
-  .legend { display:flex; flex-wrap:wrap; gap:8px 14px; padding:10px 24px; background:var(--card); border-bottom:1px solid var(--border); align-items:center; }
-  .legend-group { display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; }
-  .legend-label { font-size:12px; color:var(--muted); font-weight:600; white-space:nowrap; }
-  .legend-sep { width:1px; height:16px; background:var(--border); }
-  .legend-item { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); }
-  .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.year-nav { display:flex; align-items:center; gap:8px; }
+.year-nav button { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:16px; line-height:1; color:var(--text); transition:background .15s; }
+.year-nav button:hover { background:var(--border); }
+.year-label { font-weight:600; font-size:15px; min-width:50px; text-align:center; }
 
-  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; padding:20px 24px; max-width:1600px; margin:0 auto; }
-  .month-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; }
-  .month-header { padding:12px 16px 10px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
-  .month-name { font-weight:700; font-size:15px; }
-  .month-count { font-size:12px; color:var(--muted); background:var(--bg); border-radius:20px; padding:1px 8px; }
-  .month-current { border-top:3px solid var(--accent); }
-  .month-current .month-name { color:var(--accent); }
+.legend { display:flex; flex-wrap:wrap; gap:8px 14px; padding:10px 24px; background:var(--card); border-bottom:1px solid var(--border); align-items:center; }
+.legend-group { display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; }
+.legend-label { font-size:12px; color:var(--muted); font-weight:600; white-space:nowrap; }
+.legend-sep { width:1px; height:16px; background:var(--border); }
+.legend-item { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); }
+.legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
 
-  .task-list { flex:1; padding:10px 12px; display:flex; flex-direction:column; gap:5px; max-height:380px; overflow-y:auto; }
-  .task-list::-webkit-scrollbar { width:4px; }
-  .task-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:99px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; padding:20px 24px; max-width:1600px; margin:0 auto; }
+.month-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; }
+.month-header { padding:12px 16px 10px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.month-name { font-weight:700; font-size:15px; }
+.month-count { font-size:12px; color:var(--muted); background:var(--bg); border-radius:20px; padding:1px 8px; }
+.month-current { border-top:3px solid var(--accent); }
+.month-current .month-name { color:var(--accent); }
 
-  .task-item { display:flex; align-items:flex-start; gap:7px; padding:7px 9px; border-radius:7px; border:1px solid transparent; }
-  .task-item:hover { filter:brightness(.97); }
-  .task-text { flex:1; font-size:13px; line-height:1.4; word-break:break-word; cursor:text; outline:none; }
-  .task-text:focus { background:rgba(255,255,255,.6); border-radius:4px; }
-  .recurring-badge { font-size:10px; opacity:.6; flex-shrink:0; margin-top:3px; }
-  .task-actions { display:none; gap:3px; flex-shrink:0; }
-  .task-item:hover .task-actions { display:flex; }
-  .task-btn { background:none; border:none; cursor:pointer; padding:2px 4px; border-radius:4px; font-size:11px; color:var(--muted); line-height:1; transition:background .15s,color .15s; }
-  .task-btn:hover { background:rgba(0,0,0,.08); color:var(--text); }
-  .task-btn.delete:hover { color:#dc2626; }
+.task-list { flex:1; padding:10px 12px; display:flex; flex-direction:column; gap:5px; max-height:380px; overflow-y:auto; }
+.task-list::-webkit-scrollbar { width:4px; }
+.task-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:99px; }
 
-  .tasks-divider { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; padding:4px 2px 2px; border-top:1px dashed var(--border); margin-top:4px; }
+.task-item { display:flex; align-items:flex-start; gap:7px; padding:7px 9px; border-radius:7px; border:1px solid transparent; }
+.task-item:hover { filter:brightness(.97); }
+.task-text { flex:1; font-size:13px; line-height:1.4; word-break:break-word; cursor:text; outline:none; }
+.task-text:focus { background:rgba(255,255,255,.6); border-radius:4px; }
+.recurring-badge { font-size:10px; opacity:.6; flex-shrink:0; margin-top:3px; }
+.task-actions { display:none; gap:3px; flex-shrink:0; }
+.task-item:hover .task-actions { display:flex; }
+.task-btn { background:none; border:none; cursor:pointer; padding:2px 4px; border-radius:4px; font-size:11px; color:var(--muted); line-height:1; transition:background .15s,color .15s; }
+.task-btn:hover { background:rgba(0,0,0,.08); color:var(--text); }
+.task-btn.delete:hover { color:#dc2626; }
 
-  .add-area { padding:8px 12px 12px; border-top:1px solid var(--border); }
-  .add-btn { width:100%; background:none; border:1.5px dashed var(--border); border-radius:7px; padding:7px 12px; text-align:left; color:var(--muted); cursor:pointer; font-size:13px; transition:border-color .15s,color .15s,background .15s; }
-  .add-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
-  .add-form { display:none; flex-direction:column; gap:8px; }
-  .add-form.open { display:flex; }
-  .add-input { width:100%; border:1.5px solid var(--border); border-radius:7px; padding:7px 10px; font-size:13px; font-family:inherit; color:var(--text); resize:none; outline:none; transition:border-color .15s; }
-  .add-input:focus { border-color:var(--accent); }
-  .add-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
-  .cat-select { flex:1; border:1.5px solid var(--border); border-radius:7px; padding:5px 7px; font-size:12px; font-family:inherit; color:var(--text); background:white; outline:none; cursor:pointer; min-width:110px; }
-  .cat-select:focus { border-color:var(--accent); }
-  .recur-label { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); cursor:pointer; padding:4px 0; }
-  .recur-label input { cursor:pointer; accent-color:var(--accent); }
-  .recur-hint { font-size:11px; color:var(--accent); background:var(--accent-light); border-radius:5px; padding:4px 8px; }
-  .form-btns { display:flex; gap:6px; }
-  .btn-save { background:var(--accent); color:white; border:none; border-radius:7px; padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer; transition:opacity .15s; }
-  .btn-save:hover { opacity:.85; }
-  .btn-cancel { background:var(--bg); color:var(--muted); border:1px solid var(--border); border-radius:7px; padding:6px 10px; font-size:13px; cursor:pointer; transition:background .15s; }
-  .btn-cancel:hover { background:var(--border); }
-  .empty-hint { text-align:center; color:var(--muted); font-size:12px; padding:12px 0 4px; font-style:italic; }
-  footer { text-align:center; padding:20px; color:var(--muted); font-size:12px; }
-  #loading { text-align:center; padding:60px; color:var(--muted); font-size:14px; }
+.tasks-divider { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; padding:4px 2px 2px; border-top:1px dashed var(--border); margin-top:4px; }
+
+.add-area { padding:8px 12px 12px; border-top:1px solid var(--border); }
+.add-btn { width:100%; background:none; border:1.5px dashed var(--border); border-radius:7px; padding:7px 12px; text-align:left; color:var(--muted); cursor:pointer; font-size:13px; transition:border-color .15s,color .15s,background .15s; }
+.add-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+.add-form { display:none; flex-direction:column; gap:8px; }
+.add-form.open { display:flex; }
+.add-input { width:100%; border:1.5px solid var(--border); border-radius:7px; padding:7px 10px; font-size:13px; font-family:inherit; color:var(--text); resize:none; outline:none; transition:border-color .15s; }
+.add-input:focus { border-color:var(--accent); }
+.add-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.cat-select { flex:1; border:1.5px solid var(--border); border-radius:7px; padding:5px 7px; font-size:12px; font-family:inherit; color:var(--text); background:white; outline:none; cursor:pointer; min-width:110px; }
+.cat-select:focus { border-color:var(--accent); }
+.recur-label { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); cursor:pointer; padding:4px 0; }
+.recur-label input { cursor:pointer; accent-color:var(--accent); }
+.recur-hint { font-size:11px; color:var(--accent); background:var(--accent-light); border-radius:5px; padding:4px 8px; }
+.form-btns { display:flex; gap:6px; }
+.btn-save { background:var(--accent); color:white; border:none; border-radius:7px; padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer; transition:opacity .15s; }
+.btn-save:hover { opacity:.85; }
+.btn-cancel { background:var(--bg); color:var(--muted); border:1px solid var(--border); border-radius:7px; padding:6px 10px; font-size:13px; cursor:pointer; transition:background .15s; }
+.btn-cancel:hover { background:var(--border); }
+.empty-hint { text-align:center; color:var(--muted); font-size:12px; padding:12px 0 4px; font-style:italic; }
+footer { text-align:center; padding:20px; color:var(--muted); font-size:12px; }
+#loading, #loading-planner { text-align:center; padding:60px; color:var(--muted); font-size:14px; }
+
+/* ═══════ LEHRVERANSTALTUNGSPLANER (scoped unter #view-planner) ═══════ */
+#view-planner { display:flex; min-height:calc(100vh - 65px); }
+#view-planner .sidebar { width:230px; background:var(--primary-dark); color:#fff; padding:24px 0; flex-shrink:0; }
+#view-planner .sidebar h1 { font-size:13px; padding:0 20px 20px; margin:0; border-bottom:1px solid rgba(255,255,255,0.15); font-weight:600; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:.04em; }
+#view-planner .nav-item { display:flex; align-items:center; gap:10px; padding:12px 20px; cursor:pointer; color:rgba(255,255,255,0.8); font-size:14.5px; border-left:3px solid transparent; }
+#view-planner .nav-item:hover { background:rgba(255,255,255,0.06); color:#fff; }
+#view-planner .nav-item.active { background:rgba(255,255,255,0.1); color:#fff; border-left-color:#d98c3f; font-weight:600; }
+#view-planner .nav-sep { height:1px; background:rgba(255,255,255,0.12); margin:14px 20px; }
+#view-planner main { flex:1; padding:32px 40px; max-width:1100px; }
+#view-planner .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+#view-planner h2 { margin:0; font-size:22px; }
+#view-planner .btn { background:var(--primary); color:#fff; border:none; padding:9px 16px; border-radius:6px; font-size:14px; cursor:pointer; font-weight:500; }
+#view-planner .btn:hover { background:var(--primary-dark); }
+#view-planner .btn.secondary { background:#fff; color:var(--primary); border:1px solid var(--border); }
+#view-planner .btn.secondary:hover { background:var(--accent-light); }
+#view-planner .btn.danger { background:#fff; color:var(--danger); border:1px solid #e8c9c1; }
+#view-planner .btn.danger:hover { background:#fbeeeb; }
+#view-planner .btn.small { padding:5px 11px; font-size:12.5px; }
+#view-planner .btn-row { display:flex; gap:8px; flex-wrap:wrap; }
+#view-planner .planner-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
+#view-planner .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px; }
+#view-planner .card h3 { margin:0 0 6px; font-size:16px; }
+#view-planner .card .meta { color:var(--muted); font-size:13px; margin-bottom:10px; }
+#view-planner .tag { display:inline-block; background:var(--accent-light); color:var(--primary-dark); border-radius:20px; padding:2px 10px; font-size:11.5px; margin:2px 4px 2px 0; }
+#view-planner .tag.orange { background:#fbe9d6; color:#8a5a1e; }
+#view-planner .tag.green { background:#e4f0e7; color:var(--success); }
+#view-planner .empty { text-align:center; color:var(--muted); padding:60px 20px; border:1px dashed var(--border); border-radius:var(--radius); background:#fff; }
+#view-planner label { display:block; font-size:13px; color:var(--muted); margin:12px 0 4px; font-weight:600; }
+#view-planner input[type=text], #view-planner input[type=number], #view-planner textarea, #view-planner select {
+  width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:14px; font-family:inherit; background:#fff; color:var(--text);
+}
+#view-planner textarea { resize:vertical; min-height:60px; }
+#view-planner .row2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+#view-planner .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+#view-planner .modal-overlay { position:fixed; inset:0; background:rgba(30,25,20,0.4); display:flex; align-items:center; justify-content:center; z-index:150; }
+#view-planner .modal { background:#fff; border-radius:var(--radius); padding:26px 28px; width:480px; max-width:92vw; max-height:88vh; overflow-y:auto; }
+#view-planner .modal h3 { margin-top:0; }
+#view-planner .tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:20px; }
+#view-planner .tab { padding:10px 16px; cursor:pointer; font-size:14px; color:var(--muted); border-bottom:2px solid transparent; }
+#view-planner .tab.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:600; }
+#view-planner .list-item { display:flex; justify-content:space-between; align-items:flex-start; padding:12px 14px; border:1px solid var(--border); border-radius:8px; margin-bottom:10px; background:#fff; }
+#view-planner .list-item .content { flex:1; }
+#view-planner .list-item .content .title { font-weight:600; font-size:14.5px; margin-bottom:4px; }
+#view-planner .list-item .content .sub { font-size:12.5px; color:var(--muted); }
+#view-planner .back-link { color:var(--primary); cursor:pointer; font-size:13.5px; margin-bottom:10px; display:inline-block; }
+#view-planner .back-link:hover { text-decoration:underline; }
+#view-planner .badge-vorlage { background:#d98c3f; color:#fff; padding:2px 9px; border-radius:20px; font-size:11px; margin-left:8px; }
+#view-planner .hint { font-size:12.5px; color:var(--muted); margin-top:4px; }
+#view-planner .filter-row { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+#view-planner .chip { padding:6px 13px; border-radius:20px; border:1px solid var(--border); background:#fff; font-size:13px; cursor:pointer; color:var(--muted); }
+#view-planner .chip.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+#view-planner table input[type=text] { padding:6px 8px; font-size:13px; }
+#view-planner table td, #view-planner table th { vertical-align:top; }
+#view-planner #app { display:flex; min-height:calc(100vh - 65px); }
+
+@media print {
+  table input[type=text] { border:none; background:transparent; padding:2px 0; }
+  header, #view-aufgaben, #view-planner .sidebar, #view-planner .topbar .btn-row, .no-print { display:none !important; }
+  #view-planner main { padding:0; max-width:100%; }
+  body { background:#fff; }
+}
 </style>
 </head>
 <body>
 
 <div id="setup-banner">
-  <h3>☁️ Supabase einrichten – Geräteübergreifende Synchronisation</h3>
-  <div class="setup-row">
-    <input class="setup-input" id="sb-url" placeholder="Project URL  (z.B. https://abcxyz.supabase.co)" autocomplete="off">
-    <input class="setup-input" id="sb-key" placeholder="Anon / Public Key" autocomplete="off">
-    <button class="btn-setup" id="btn-save-setup">Verbinden</button>
-    <button class="btn-setup" style="background:#64748b" id="btn-skip-setup">Nur lokal</button>
-  </div>
-  <div class="setup-help">
-    Project URL und Anon Key findest du in deinem Supabase-Projekt unter <strong>Settings → API</strong>.
-    <a href="https://supabase.com" target="_blank">→ supabase.com</a>
-  </div>
+<h3>☁️ Supabase einrichten – Geräteübergreifende Synchronisation</h3>
+<div class="setup-row">
+<input class="setup-input" id="sb-url" placeholder="Project URL (z.B. https://abcxyz.supabase.co)" autocomplete="off">
+<input class="setup-input" id="sb-key" placeholder="Anon / Public Key" autocomplete="off">
+<button class="btn-setup" id="btn-save-setup">Verbinden</button>
+<button class="btn-setup" style="background:#64748b" id="btn-skip-setup">Nur lokal</button>
+</div>
+<div class="setup-help">
+Project URL und Anon Key findest du in deinem Supabase-Projekt unter <strong>Settings → API</strong>.
+<a href="https://supabase.com" target="_blank">→ supabase.com</a>
+</div>
 </div>
 
 <header>
-  <div class="header-left">
-    <div class="logo">L</div>
-    <h1>Externe Lehraufträge</h1>
-  </div>
-  <div class="header-right">
-    <div id="sync-status"><span id="sync-dot"></span><span id="sync-text">lokal</span></div>
-    <button id="btn-settings" title="Supabase-Einstellungen">⚙️</button>
-    <div class="year-nav">
-      <button id="prevYear">‹</button>
-      <div class="year-label" id="yearLabel"></div>
-      <button id="nextYear">›</button>
-    </div>
-  </div>
+<div class="header-left">
+<div class="logo">L</div>
+<h1>Externe Lehraufträge <span id="page-subtitle">Aufgaben-Tracker</span></h1>
+</div>
+<div class="header-right">
+<div class="view-switch">
+<button class="view-btn active" id="btn-view-aufgaben">📋 Aufgaben</button>
+<button class="view-btn" id="btn-view-planner">🎓 Lehrveranstaltungsplaner</button>
+</div>
+<a class="cross-link" href="./ANP_Jahresplan.html">Jahresplan</a>
+<div id="sync-status"><span id="sync-dot"></span><span id="sync-text">lokal</span></div>
+<button id="btn-settings" title="Supabase-Einstellungen">⚙️</button>
+<div class="year-nav" id="year-nav-wrap">
+<button id="prevYear">‹</button>
+<div class="year-label" id="yearLabel"></div>
+<button id="nextYear">›</button>
+</div>
+</div>
 </header>
 
+<div id="view-aufgaben">
 <div class="legend">
-  <span class="legend-label">Institution:</span>
-  <div class="legend-group">
-    <span class="legend-item"><span class="legend-dot" style="background:#2563eb"></span>UMIT</span>
-    <span class="legend-item"><span class="legend-dot" style="background:#7c3aed"></span>INC</span>
-    <span class="legend-item"><span class="legend-dot" style="background:#dc2626"></span>Rotes Kreuz</span>
-    <span class="legend-item"><span class="legend-dot" style="background:#d97706"></span>FHCW</span>
-    <span class="legend-item"><span class="legend-dot" style="background:#059669"></span>FhG</span>
-    <span class="legend-item"><span class="legend-dot" style="background:#475569"></span>Andere</span>
-  </div>
-  <div class="legend-sep"></div>
-  <span class="legend-label">Status der Vorbereitung:</span>
-  <div class="legend-group">
-    <span class="legend-item"><span class="status-select s-nicht-begonnen" style="cursor:default;pointer-events:none">Nicht begonnen</span></span>
-    <span class="legend-item"><span class="status-select s-in-arbeit" style="cursor:default;pointer-events:none">In Arbeit</span></span>
-    <span class="legend-item"><span class="status-select s-fertig" style="cursor:default;pointer-events:none">Fertig</span></span>
-  </div>
-  <div class="legend-sep"></div>
-  <span class="legend-item">🔁 = jährlich wiederkehrend</span>
+<span class="legend-label">Institution:</span>
+<div class="legend-group">
+<span class="legend-item"><span class="legend-dot" style="background:#2563eb"></span>UMIT</span>
+<span class="legend-item"><span class="legend-dot" style="background:#7c3aed"></span>INC</span>
+<span class="legend-item"><span class="legend-dot" style="background:#dc2626"></span>Rotes Kreuz</span>
+<span class="legend-item"><span class="legend-dot" style="background:#d97706"></span>FHCW</span>
+<span class="legend-item"><span class="legend-dot" style="background:#059669"></span>FhG</span>
+<span class="legend-item"><span class="legend-dot" style="background:#475569"></span>Andere</span>
+</div>
+<div class="legend-sep"></div>
+<span class="legend-label">Status der Vorbereitung:</span>
+<div class="legend-group">
+<span class="legend-item"><span class="status-select s-nicht-begonnen" style="cursor:default;pointer-events:none">Nicht begonnen</span></span>
+<span class="legend-item"><span class="status-select s-in-arbeit" style="cursor:default;pointer-events:none">In Arbeit</span></span>
+<span class="legend-item"><span class="status-select s-fertig" style="cursor:default;pointer-events:none">Fertig</span></span>
+</div>
+<div class="legend-sep"></div>
+<span class="legend-item">🔁 = jährlich wiederkehrend</span>
 </div>
 
 <div id="loading">Lade Daten …</div>
 <div class="grid" id="grid" style="display:none"></div>
 <footer>ANP Externe Lehraufträge · Wiederkehrende Einträge erscheinen automatisch jedes Jahr</footer>
+</div>
+
+<div id="view-planner" style="display:none">
+<div id="loading-planner">Lade Daten …</div>
+<div id="app" style="display:none"></div>
+</div>
 
 <script>
 // ═══════════════════════════════════════════════
-// KONFIGURATION
+// GEMEINSAME INFRASTRUKTUR (Supabase-Sync, geteilt von Aufgaben-Tracker & Lehrveranstaltungsplaner)
+// ═══════════════════════════════════════════════
+let sb = null;
+let currentView = 'aufgaben';
+
+// Supabase-Projekt: ANP-Jahresplan — Zugangsdaten vorbelegt
+(function seedCredentials() {
+if (!localStorage.getItem('sb_url')) {
+localStorage.setItem('sb_url', 'https://rshzagxtsftdairoyfil.supabase.co');
+}
+if (!localStorage.getItem('sb_key')) {
+localStorage.setItem('sb_key', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzaHphZ3h0c2Z0ZGFpcm95ZmlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3ODY0MzksImV4cCI6MjA5ODM2MjQzOX0.waKxJ8w1fZICa4t2oWImJuk4nWcuDlAeTT7Dcpmt5RM');
+}
+})();
+
+function getSbCreds() {
+return { url: localStorage.getItem('sb_url')||'', key: localStorage.getItem('sb_key')||'' };
+}
+
+function initSupabase() {
+const { url, key } = getSbCreds();
+if (url && key) {
+try { sb = supabase.createClient(url, key); setSyncStatus('ok','verbunden'); return true; }
+catch { sb = null; }
+}
+setSyncStatus('off','lokal'); return false;
+}
+
+function setSyncStatus(state, text) {
+const dot=document.getElementById('sync-dot'), txt=document.getElementById('sync-text');
+if (!dot) return;
+dot.className = state==='ok'?'ok':state==='syncing'?'syncing':state==='error'?'error':'';
+txt.textContent = text;
+}
+
+async function dbGet(key) {
+if (!sb) return null;
+try {
+const { data, error } = await sb.from('plan_data').select('data').eq('key', key).maybeSingle();
+if (error||!data) return null; return data.data;
+} catch { return null; }
+}
+
+async function dbSet(key, value) {
+if (!sb) return;
+setSyncStatus('syncing','synchronisiert …');
+try {
+const { error } = await sb.from('plan_data').upsert({ key, data: value, updated_at: new Date().toISOString() }, { onConflict:'key' });
+if (error) throw error;
+setSyncStatus('ok','synchronisiert');
+} catch (e) { console.warn('Sync error:', e); setSyncStatus('error','Sync-Fehler'); }
+}
+
+function tryParse(s) { try { return s ? JSON.parse(s) : null; } catch { return null; } }
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+function showSetupBanner() {
+document.getElementById('setup-banner').style.display = 'block';
+const { url, key } = getSbCreds();
+document.getElementById('sb-url').value = url;
+document.getElementById('sb-key').value = key;
+}
+function hideSetupBanner() { document.getElementById('setup-banner').style.display = 'none'; }
+
+document.getElementById('btn-save-setup').addEventListener('click', async () => {
+const url=document.getElementById('sb-url').value.trim(), key=document.getElementById('sb-key').value.trim();
+if (!url||!key) { alert('Bitte beide Felder ausfüllen.'); return; }
+localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
+hideSetupBanner(); initSupabase();
+document.getElementById('loading').style.display = 'block';
+document.getElementById('grid').style.display = 'none';
+document.getElementById('loading-planner').style.display = 'block';
+document.getElementById('app').style.display = 'none';
+await Promise.all([loadAll(), loadPlannerAll()]);
+render();
+renderPlanner();
+});
+document.getElementById('btn-skip-setup').addEventListener('click', () => {
+hideSetupBanner();
+if (!document.getElementById('grid').children.length) render();
+});
+document.getElementById('btn-settings').addEventListener('click', () => showSetupBanner());
+
+function wireViewSwitch() {
+document.getElementById('btn-view-aufgaben').addEventListener('click', () => switchView('aufgaben'));
+document.getElementById('btn-view-planner').addEventListener('click', () => switchView('planner'));
+}
+
+function switchView(view) {
+currentView = view;
+document.getElementById('view-aufgaben').style.display = view === 'aufgaben' ? '' : 'none';
+document.getElementById('view-planner').style.display = view === 'planner' ? '' : 'none';
+document.getElementById('year-nav-wrap').style.display = view === 'aufgaben' ? 'flex' : 'none';
+document.getElementById('btn-view-aufgaben').classList.toggle('active', view === 'aufgaben');
+document.getElementById('btn-view-planner').classList.toggle('active', view === 'planner');
+document.getElementById('page-subtitle').textContent = view === 'aufgaben' ? 'Aufgaben-Tracker' : 'Didaktische Planung';
+}
+
+// ═══════════════════════════════════════════════
+// AUFGABEN-TRACKER (bestehende Funktionalität, unverändert)
 // ═══════════════════════════════════════════════
 const TEMPLATE_KEY = 'anp_la_template';
 function yearKey(y) { return `anp_la_${y}`; }
 
 const MONTHS = [
-  { key:'jan', label:'Jänner',    idx:0  }, { key:'feb', label:'Februar',   idx:1  },
-  { key:'mar', label:'März',      idx:2  }, { key:'apr', label:'April',     idx:3  },
-  { key:'mai', label:'Mai',       idx:4  }, { key:'jun', label:'Juni',      idx:5  },
-  { key:'jul', label:'Juli',      idx:6  }, { key:'aug', label:'August',    idx:7  },
-  { key:'sep', label:'September', idx:8  }, { key:'okt', label:'Oktober',   idx:9  },
-  { key:'nov', label:'November',  idx:10 }, { key:'dez', label:'Dezember',  idx:11 },
+{ key:'jan', label:'Jänner', idx:0 }, { key:'feb', label:'Februar', idx:1 },
+{ key:'mar', label:'März', idx:2 }, { key:'apr', label:'April', idx:3 },
+{ key:'mai', label:'Mai', idx:4 }, { key:'jun', label:'Juni', idx:5 },
+{ key:'jul', label:'Juli', idx:6 }, { key:'aug', label:'August', idx:7 },
+{ key:'sep', label:'September', idx:8 }, { key:'okt', label:'Oktober', idx:9 },
+{ key:'nov', label:'November', idx:10 }, { key:'dez', label:'Dezember', idx:11 },
 ];
 const CATEGORIES = [
-  { key:'umit',   label:'UMIT',        cls:'cat-umit'   },
-  { key:'inc',    label:'INC',         cls:'cat-inc'    },
-  { key:'rk',     label:'Rotes Kreuz', cls:'cat-rk'     },
-  { key:'fhcw',   label:'FHCW',        cls:'cat-fhcw'   },
-  { key:'fhg',    label:'FhG',         cls:'cat-fhg'    },
-  { key:'andere', label:'Andere',      cls:'cat-andere' },
+{ key:'umit', label:'UMIT', cls:'cat-umit' },
+{ key:'inc', label:'INC', cls:'cat-inc' },
+{ key:'rk', label:'Rotes Kreuz', cls:'cat-rk' },
+{ key:'fhcw', label:'FHCW', cls:'cat-fhcw' },
+{ key:'fhg', label:'FhG', cls:'cat-fhg' },
+{ key:'andere', label:'Andere', cls:'cat-andere' },
 ];
 const STATUSES = ['nicht-begonnen', 'in-arbeit', 'fertig'];
 const STATUS_LABEL = { 'nicht-begonnen':'Nicht begonnen', 'in-arbeit':'In Arbeit', 'fertig':'Fertig' };
 const STATUS_ORDER = { 'nicht-begonnen':0, 'in-arbeit':1, 'fertig':2 };
 
-// ═══════════════════════════════════════════════
-// SUPABASE SYNC  (gleiche Credentials wie Jahresplan!)
-// ═══════════════════════════════════════════════
-let sb = null;
-
-// Supabase-Projekt: ANP-Jahresplan — Zugangsdaten vorbelegt
-(function seedCredentials() {
-  if (!localStorage.getItem('sb_url')) {
-    localStorage.setItem('sb_url', 'https://rshzagxtsftdairoyfil.supabase.co');
-  }
-  if (!localStorage.getItem('sb_key')) {
-    localStorage.setItem('sb_key', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzaHphZ3h0c2Z0ZGFpcm95ZmlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3ODY0MzksImV4cCI6MjA5ODM2MjQzOX0.waKxJ8w1fZICa4t2oWImJuk4nWcuDlAeTT7Dcpmt5RM');
-  }
-})();
-
-function getSbCreds() {
-  return { url: localStorage.getItem('sb_url')||'', key: localStorage.getItem('sb_key')||'' };
-}
-
-function initSupabase() {
-  const { url, key } = getSbCreds();
-  if (url && key) {
-    try { sb = supabase.createClient(url, key); setSyncStatus('ok','verbunden'); return true; }
-    catch { sb = null; }
-  }
-  setSyncStatus('off','lokal'); return false;
-}
-
-function setSyncStatus(state, text) {
-  const dot=document.getElementById('sync-dot'), txt=document.getElementById('sync-text');
-  if (!dot) return;
-  dot.className = state==='ok'?'ok':state==='syncing'?'syncing':state==='error'?'error':'';
-  txt.textContent = text;
-}
-
-async function dbGet(key) {
-  if (!sb) return null;
-  try {
-    const { data, error } = await sb.from('plan_data').select('data').eq('key', key).maybeSingle();
-    if (error||!data) return null; return data.data;
-  } catch { return null; }
-}
-
-async function dbSet(key, value) {
-  if (!sb) return;
-  setSyncStatus('syncing','synchronisiert …');
-  try {
-    const { error } = await sb.from('plan_data').upsert({ key, data: value, updated_at: new Date().toISOString() }, { onConflict:'key' });
-    if (error) throw error;
-    setSyncStatus('ok','synchronisiert');
-  } catch (e) { console.warn('Sync error:', e); setSyncStatus('error','Sync-Fehler'); }
-}
-
-// ═══════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════
 let currentYear = new Date().getFullYear();
 let template = {}, yearData = {};
 
 async function loadAll() {
-  if (sb) {
-    setSyncStatus('syncing','lädt …');
-    const [tmpl, yd] = await Promise.all([dbGet(TEMPLATE_KEY), dbGet(yearKey(currentYear))]);
-    template = tmpl || tryParse(localStorage.getItem(TEMPLATE_KEY)) || {};
-    yearData  = yd   || tryParse(localStorage.getItem(yearKey(currentYear))) || {};
-    localStorage.setItem(TEMPLATE_KEY, JSON.stringify(template));
-    localStorage.setItem(yearKey(currentYear), JSON.stringify(yearData));
-    setSyncStatus('ok','synchronisiert');
-  } else {
-    template = tryParse(localStorage.getItem(TEMPLATE_KEY)) || {};
-    yearData  = tryParse(localStorage.getItem(yearKey(currentYear))) || {};
-  }
-  if (!yearData.tasks)          yearData.tasks = {};
-  if (!yearData.templateStatus) yearData.templateStatus = {};
+if (sb) {
+setSyncStatus('syncing','lädt …');
+const [tmpl, yd] = await Promise.all([dbGet(TEMPLATE_KEY), dbGet(yearKey(currentYear))]);
+template = tmpl || tryParse(localStorage.getItem(TEMPLATE_KEY)) || {};
+yearData = yd || tryParse(localStorage.getItem(yearKey(currentYear))) || {};
+localStorage.setItem(TEMPLATE_KEY, JSON.stringify(template));
+localStorage.setItem(yearKey(currentYear), JSON.stringify(yearData));
+setSyncStatus('ok','synchronisiert');
+} else {
+template = tryParse(localStorage.getItem(TEMPLATE_KEY)) || {};
+yearData = tryParse(localStorage.getItem(yearKey(currentYear))) || {};
 }
-
-function tryParse(s) { try { return s ? JSON.parse(s) : null; } catch { return null; } }
+if (!yearData.tasks) yearData.tasks = {};
+if (!yearData.templateStatus) yearData.templateStatus = {};
+}
 
 function saveTemplate() { localStorage.setItem(TEMPLATE_KEY, JSON.stringify(template)); dbSet(TEMPLATE_KEY, template); }
-function saveYearData()  { localStorage.setItem(yearKey(currentYear), JSON.stringify(yearData)); dbSet(yearKey(currentYear), yearData); }
+function saveYearData() { localStorage.setItem(yearKey(currentYear), JSON.stringify(yearData)); dbSet(yearKey(currentYear), yearData); }
 
-// ═══════════════════════════════════════════════
-// TASK HELPERS
-// ═══════════════════════════════════════════════
 function getTemplateTasks(k) { return template[k] || []; }
 function addTemplateTask(k, text, cat) {
-  if (!template[k]) template[k] = [];
-  template[k].push({ id: uid(), text, cat });
-  saveTemplate();
+if (!template[k]) template[k] = [];
+template[k].push({ id: uid(), text, cat });
+saveTemplate();
 }
 function updateTemplateTask(k, id, changes) {
-  const t = (template[k]||[]).find(t => t.id===id);
-  if (t) { Object.assign(t, changes); saveTemplate(); }
+const t = (template[k]||[]).find(t => t.id===id);
+if (t) { Object.assign(t, changes); saveTemplate(); }
 }
 function deleteTemplateTask(k, id) {
-  template[k] = (template[k]||[]).filter(t => t.id!==id);
-  saveTemplate();
+template[k] = (template[k]||[]).filter(t => t.id!==id);
+saveTemplate();
 }
 function getTemplateStatus(id) { return yearData.templateStatus[id] || 'nicht-begonnen'; }
 function setTemplateStatus(id, status) { yearData.templateStatus[id] = status; saveYearData(); }
 function getYearTasks(k) { return yearData.tasks[k] || []; }
 function addYearTask(k, text, cat) {
-  if (!yearData.tasks[k]) yearData.tasks[k] = [];
-  yearData.tasks[k].push({ id: uid(), text, cat, status: 'nicht-begonnen' });
-  saveYearData();
+if (!yearData.tasks[k]) yearData.tasks[k] = [];
+yearData.tasks[k].push({ id: uid(), text, cat, status: 'nicht-begonnen' });
+saveYearData();
 }
 function updateYearTask(k, id, changes) {
-  const t = (yearData.tasks[k]||[]).find(t => t.id===id);
-  if (t) { Object.assign(t, changes); saveYearData(); }
+const t = (yearData.tasks[k]||[]).find(t => t.id===id);
+if (t) { Object.assign(t, changes); saveYearData(); }
 }
 function deleteYearTask(k, id) {
-  yearData.tasks[k] = (yearData.tasks[k]||[]).filter(t => t.id!==id);
-  saveYearData();
+yearData.tasks[k] = (yearData.tasks[k]||[]).filter(t => t.id!==id);
+saveYearData();
 }
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
-// ═══════════════════════════════════════════════
-// RENDER
-// ═══════════════════════════════════════════════
 function render() {
-  document.getElementById('loading').style.display = 'none';
-  const grid = document.getElementById('grid');
-  grid.style.display = '';
-  document.getElementById('yearLabel').textContent = currentYear;
-  grid.innerHTML = '';
+document.getElementById('loading').style.display = 'none';
+const grid = document.getElementById('grid');
+grid.style.display = '';
+document.getElementById('yearLabel').textContent = currentYear;
+grid.innerHTML = '';
 
-  MONTHS.forEach(m => {
-    const tTasks=getTemplateTasks(m.key), yTasks=getYearTasks(m.key);
-    const pendingCount = tTasks.filter(t => getTemplateStatus(t.id)!=='fertig').length
-                       + yTasks.filter(t => (t.status||'nicht-begonnen')!=='fertig').length;
-    const isCurrent = new Date().getMonth()===m.idx && new Date().getFullYear()===currentYear;
+MONTHS.forEach(m => {
+const tTasks=getTemplateTasks(m.key), yTasks=getYearTasks(m.key);
+const pendingCount = tTasks.filter(t => getTemplateStatus(t.id)!=='fertig').length
++ yTasks.filter(t => (t.status||'nicht-begonnen')!=='fertig').length;
+const isCurrent = new Date().getMonth()===m.idx && new Date().getFullYear()===currentYear;
 
-    const card = document.createElement('div');
-    card.className = 'month-card' + (isCurrent ? ' month-current' : '');
-    card.innerHTML = `
-      <div class="month-header">
-        <span class="month-name">${m.label}</span>
-        <span class="month-count" id="count-${m.key}">${pendingCount} offen</span>
-      </div>
-      <div class="task-list" id="list-${m.key}"></div>
-      <div class="add-area">
-        <button class="add-btn" id="addbtn-${m.key}">+ Eintrag hinzufügen</button>
-        <div class="add-form" id="addform-${m.key}">
-          <textarea class="add-input" id="addinput-${m.key}" rows="2" placeholder="Lehrauftrag / Aufgabe beschreiben …"></textarea>
-          <div class="add-row">
-            <select class="cat-select" id="addcat-${m.key}">
-              ${CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join('')}
-            </select>
-          </div>
-          <label class="recur-label">
-            <input type="checkbox" id="addrecur-${m.key}"> 🔁 Jährlich wiederholen
-          </label>
-          <div class="recur-hint" id="recurhint-${m.key}" style="display:none">Dieser Eintrag erscheint automatisch in jedem Kalenderjahr.</div>
-          <div class="form-btns">
-            <button class="btn-save" id="addsave-${m.key}">Speichern</button>
-            <button class="btn-cancel" id="addcancel-${m.key}">Abbrechen</button>
-          </div>
-        </div>
-      </div>`;
-    grid.appendChild(card);
-    renderTaskList(m.key);
-    wireForm(m.key);
-  });
+const card = document.createElement('div');
+card.className = 'month-card' + (isCurrent ? ' month-current' : '');
+card.innerHTML = `
+<div class="month-header">
+<span class="month-name">${m.label}</span>
+<span class="month-count" id="count-${m.key}">${pendingCount} offen</span>
+</div>
+<div class="task-list" id="list-${m.key}"></div>
+<div class="add-area">
+<button class="add-btn" id="addbtn-${m.key}">+ Eintrag hinzufügen</button>
+<div class="add-form" id="addform-${m.key}">
+<textarea class="add-input" id="addinput-${m.key}" rows="2" placeholder="Lehrauftrag / Aufgabe beschreiben …"></textarea>
+<div class="add-row">
+<select class="cat-select" id="addcat-${m.key}">
+${CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join('')}
+</select>
+</div>
+<label class="recur-label">
+<input type="checkbox" id="addrecur-${m.key}"> 🔁 Jährlich wiederholen
+</label>
+<div class="recur-hint" id="recurhint-${m.key}" style="display:none">Dieser Eintrag erscheint automatisch in jedem Kalenderjahr.</div>
+<div class="form-btns">
+<button class="btn-save" id="addsave-${m.key}">Speichern</button>
+<button class="btn-cancel" id="addcancel-${m.key}">Abbrechen</button>
+</div>
+</div>
+</div>`;
+grid.appendChild(card);
+renderTaskList(m.key);
+wireForm(m.key);
+});
 }
 
 function renderTaskList(k) {
-  const list = document.getElementById(`list-${k}`);
-  if (!list) return;
-  list.innerHTML = '';
-  const tTasks=getTemplateTasks(k), yTasks=getYearTasks(k);
-  const allTasks = [
-    ...tTasks.map(t => ({ ...t, _status: getTemplateStatus(t.id), _recur: true  })),
-    ...yTasks.map(t => ({ ...t, _status: t.status||'nicht-begonnen', _recur: false })),
-  ].sort((a, b) => (STATUS_ORDER[a._status]??0) - (STATUS_ORDER[b._status]??0));
+const list = document.getElementById(`list-${k}`);
+if (!list) return;
+list.innerHTML = '';
+const tTasks=getTemplateTasks(k), yTasks=getYearTasks(k);
+const allTasks = [
+...tTasks.map(t => ({ ...t, _status: getTemplateStatus(t.id), _recur: true })),
+...yTasks.map(t => ({ ...t, _status: t.status||'nicht-begonnen', _recur: false })),
+].sort((a, b) => (STATUS_ORDER[a._status]??0) - (STATUS_ORDER[b._status]??0));
 
-  if (!allTasks.length) {
-    list.innerHTML = '<div class="empty-hint">Noch keine Einträge</div>';
-    updateCount(k); return;
-  }
-  let lastStatus = null;
-  allTasks.forEach(task => {
-    if (task._status==='fertig' && lastStatus!=='fertig') {
-      const d=document.createElement('div'); d.className='tasks-divider'; d.textContent='Fertig'; list.appendChild(d);
-    }
-    lastStatus = task._status;
-    list.appendChild(buildTaskEl(k, task));
-  });
-  updateCount(k);
+if (!allTasks.length) {
+list.innerHTML = '<div class="empty-hint">Noch keine Einträge</div>';
+updateCount(k); return;
+}
+let lastStatus = null;
+allTasks.forEach(task => {
+if (task._status==='fertig' && lastStatus!=='fertig') {
+const d=document.createElement('div'); d.className='tasks-divider'; d.textContent='Fertig'; list.appendChild(d);
+}
+lastStatus = task._status;
+list.appendChild(buildTaskEl(k, task));
+});
+updateCount(k);
 }
 
 function buildTaskEl(k, task) {
-  const cat = CATEGORIES.find(c => c.key===task.cat) || CATEGORIES[5];
-  const status = task._status;
-  const item = document.createElement('div');
-  item.className = `task-item ${cat.cls}`;
-  item.innerHTML = `
-    <div class="task-text" contenteditable="true" spellcheck="true">${escHtml(task.text)}</div>
-    ${task._recur ? '<span class="recurring-badge" title="Jährlich wiederkehrend">🔁</span>' : ''}
-    <select class="status-select s-${status}" title="Status der Vorbereitung">
-      ${STATUSES.map(s => `<option value="${s}"${s===status?' selected':''}>${STATUS_LABEL[s]}</option>`).join('')}
-    </select>
-    <div class="task-actions"><button class="task-btn delete" title="${task._recur?'Aus allen Jahren entfernen':'Löschen'}">✕</button></div>`;
+const cat = CATEGORIES.find(c => c.key===task.cat) || CATEGORIES[5];
+const status = task._status;
+const item = document.createElement('div');
+item.className = `task-item ${cat.cls}`;
+item.innerHTML = `
+<div class="task-text" contenteditable="true" spellcheck="true">${escHtml(task.text)}</div>
+${task._recur ? '<span class="recurring-badge" title="Jährlich wiederkehrend">🔁</span>' : ''}
+<select class="status-select s-${status}" title="Status der Vorbereitung">
+${STATUSES.map(s => `<option value="${s}"${s===status?' selected':''}>${STATUS_LABEL[s]}</option>`).join('')}
+</select>
+<div class="task-actions"><button class="task-btn delete" title="${task._recur?'Aus allen Jahren entfernen':'Löschen'}">✕</button></div>`;
 
-  const sel = item.querySelector('.status-select');
-  sel.addEventListener('change', () => {
-    const ns = sel.value;
-    sel.className = `status-select s-${ns}`;
-    task._recur ? setTemplateStatus(task.id, ns) : updateYearTask(k, task.id, { status: ns });
-    renderTaskList(k);
-  });
+const sel = item.querySelector('.status-select');
+sel.addEventListener('change', () => {
+const ns = sel.value;
+sel.className = `status-select s-${ns}`;
+task._recur ? setTemplateStatus(task.id, ns) : updateYearTask(k, task.id, { status: ns });
+renderTaskList(k);
+});
 
-  const textEl = item.querySelector('.task-text');
-  textEl.addEventListener('blur', () => {
-    const t = textEl.innerText.trim();
-    if (!t) { textEl.innerText=task.text; return; }
-    if (t===task.text) return;
-    task._recur ? updateTemplateTask(k, task.id, { text:t }) : updateYearTask(k, task.id, { text:t });
-  });
-  textEl.addEventListener('keydown', e => {
-    if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); textEl.blur(); }
-    if (e.key==='Escape') { textEl.innerText=task.text; textEl.blur(); }
-  });
+const textEl = item.querySelector('.task-text');
+textEl.addEventListener('blur', () => {
+const t = textEl.innerText.trim();
+if (!t) { textEl.innerText=task.text; return; }
+if (t===task.text) return;
+task._recur ? updateTemplateTask(k, task.id, { text:t }) : updateYearTask(k, task.id, { text:t });
+});
+textEl.addEventListener('keydown', e => {
+if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); textEl.blur(); }
+if (e.key==='Escape') { textEl.innerText=task.text; textEl.blur(); }
+});
 
-  item.querySelector('.delete').addEventListener('click', () => {
-    const msg = task._recur ? `"${task.text}" aus ALLEN Jahren entfernen?` : `"${task.text}" löschen?`;
-    if (confirm(msg)) { task._recur ? deleteTemplateTask(k, task.id) : deleteYearTask(k, task.id); renderTaskList(k); }
-  });
-  return item;
+item.querySelector('.delete').addEventListener('click', () => {
+const msg = task._recur ? `"${task.text}" aus ALLEN Jahren entfernen?` : `"${task.text}" löschen?`;
+if (confirm(msg)) { task._recur ? deleteTemplateTask(k, task.id) : deleteYearTask(k, task.id); renderTaskList(k); }
+});
+return item;
 }
 
 function updateCount(k) {
-  const el = document.getElementById(`count-${k}`);
-  if (!el) return;
-  const tP = getTemplateTasks(k).filter(t => getTemplateStatus(t.id)!=='fertig').length;
-  const yP = getYearTasks(k).filter(t => (t.status||'nicht-begonnen')!=='fertig').length;
-  el.textContent = `${tP+yP} offen`;
+const el = document.getElementById(`count-${k}`);
+if (!el) return;
+const tP = getTemplateTasks(k).filter(t => getTemplateStatus(t.id)!=='fertig').length;
+const yP = getYearTasks(k).filter(t => (t.status||'nicht-begonnen')!=='fertig').length;
+el.textContent = `${tP+yP} offen`;
 }
 
 function wireForm(k) {
-  const addBtn=document.getElementById(`addbtn-${k}`), addForm=document.getElementById(`addform-${k}`);
-  const addInput=document.getElementById(`addinput-${k}`), recurCb=document.getElementById(`addrecur-${k}`);
-  const recurHint=document.getElementById(`recurhint-${k}`);
-  addBtn.addEventListener('click', () => { addBtn.style.display='none'; addForm.classList.add('open'); addInput.focus(); });
-  recurCb.addEventListener('change', () => { recurHint.style.display=recurCb.checked?'block':'none'; });
-  document.getElementById(`addcancel-${k}`).addEventListener('click', () => closeForm(k));
-  document.getElementById(`addsave-${k}`).addEventListener('click', () => {
-    const text=addInput.value.trim(); if (!text) return;
-    const cat=document.getElementById(`addcat-${k}`).value;
-    recurCb.checked ? addTemplateTask(k,text,cat) : addYearTask(k,text,cat);
-    closeForm(k); renderTaskList(k);
-  });
-  addInput.addEventListener('keydown', e => {
-    if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); document.getElementById(`addsave-${k}`).click(); }
-    if (e.key==='Escape') closeForm(k);
-  });
+const addBtn=document.getElementById(`addbtn-${k}`), addForm=document.getElementById(`addform-${k}`);
+const addInput=document.getElementById(`addinput-${k}`), recurCb=document.getElementById(`addrecur-${k}`);
+const recurHint=document.getElementById(`recurhint-${k}`);
+addBtn.addEventListener('click', () => { addBtn.style.display='none'; addForm.classList.add('open'); addInput.focus(); });
+recurCb.addEventListener('change', () => { recurHint.style.display=recurCb.checked?'block':'none'; });
+document.getElementById(`addcancel-${k}`).addEventListener('click', () => closeForm(k));
+document.getElementById(`addsave-${k}`).addEventListener('click', () => {
+const text=addInput.value.trim(); if (!text) return;
+const cat=document.getElementById(`addcat-${k}`).value;
+recurCb.checked ? addTemplateTask(k,text,cat) : addYearTask(k,text,cat);
+closeForm(k); renderTaskList(k);
+});
+addInput.addEventListener('keydown', e => {
+if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); document.getElementById(`addsave-${k}`).click(); }
+if (e.key==='Escape') closeForm(k);
+});
 }
 
 function closeForm(k) {
-  const el = s => document.getElementById(s);
-  if (el(`addbtn-${k}`))    el(`addbtn-${k}`).style.display = '';
-  if (el(`addform-${k}`))   el(`addform-${k}`).classList.remove('open');
-  if (el(`addinput-${k}`))  el(`addinput-${k}`).value = '';
-  if (el(`addrecur-${k}`))  el(`addrecur-${k}`).checked = false;
-  if (el(`recurhint-${k}`)) el(`recurhint-${k}`).style.display = 'none';
+const el = s => document.getElementById(s);
+if (el(`addbtn-${k}`)) el(`addbtn-${k}`).style.display = '';
+if (el(`addform-${k}`)) el(`addform-${k}`).classList.remove('open');
+if (el(`addinput-${k}`)) el(`addinput-${k}`).value = '';
+if (el(`addrecur-${k}`)) el(`addrecur-${k}`).checked = false;
+if (el(`recurhint-${k}`)) el(`recurhint-${k}`).style.display = 'none';
 }
 
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ═══════════════════════════════════════════════
-// SETUP UI
-// ═══════════════════════════════════════════════
-function showSetupBanner() {
-  document.getElementById('setup-banner').style.display = 'block';
-  const { url, key } = getSbCreds();
-  document.getElementById('sb-url').value = url;
-  document.getElementById('sb-key').value = key;
-}
-function hideSetupBanner() { document.getElementById('setup-banner').style.display = 'none'; }
-
-document.getElementById('btn-save-setup').addEventListener('click', async () => {
-  const url=document.getElementById('sb-url').value.trim(), key=document.getElementById('sb-key').value.trim();
-  if (!url||!key) { alert('Bitte beide Felder ausfüllen.'); return; }
-  localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
-  hideSetupBanner(); initSupabase();
-  document.getElementById('loading').style.display = 'block';
-  document.getElementById('grid').style.display = 'none';
-  await loadAll(); render();
-});
-document.getElementById('btn-skip-setup').addEventListener('click', () => {
-  hideSetupBanner();
-  if (!document.getElementById('grid').children.length) render();
-});
-document.getElementById('btn-settings').addEventListener('click', () => showSetupBanner());
-
-// ═══════════════════════════════════════════════
-// YEAR NAV
-// ═══════════════════════════════════════════════
 document.getElementById('prevYear').addEventListener('click', async () => {
-  currentYear--;
-  document.getElementById('loading').style.display='block';
-  document.getElementById('grid').style.display='none';
-  await loadAll(); render();
+currentYear--;
+document.getElementById('loading').style.display='block';
+document.getElementById('grid').style.display='none';
+await loadAll(); render();
 });
 document.getElementById('nextYear').addEventListener('click', async () => {
-  currentYear++;
-  document.getElementById('loading').style.display='block';
-  document.getElementById('grid').style.display='none';
-  await loadAll(); render();
+currentYear++;
+document.getElementById('loading').style.display='block';
+document.getElementById('grid').style.display='none';
+await loadAll(); render();
 });
+
+// ═══════════════════════════════════════════════
+// LEHRVERANSTALTUNGSPLANER (Kurse, Lernziele/Constructive Alignment, Methoden, Ablaufplan)
+// ═══════════════════════════════════════════════
+const LOCAL_CACHE_KEY = "anp_lvplaner_cache";
+const REMOTE_KEY = "anp_lvplaner_state";
+
+const TAXONOMIE_STUFEN = ["Erinnern", "Verstehen", "Anwenden", "Analysieren", "Bewerten", "Erschaffen"];
+const KOMPETENZ_TYPEN = ["Fachkompetenz", "Methodenkompetenz", "Sozialkompetenz", "Selbstkompetenz"];
+const METHODEN_KATEGORIEN = ["Wissensvermittlung", "Aktivierung", "Anwendung", "Reflexion & Feedback", "Selbststudium", "Austausch"];
+const PRUEFUNGSFORMEN = ["Klausur (schriftlich)", "Mündliche Prüfung", "Hausarbeit", "Projektarbeit", "Portfolio", "Präsentation / Referat", "Take-Home Exam", "Multiple-Choice-Test", "Praktische Prüfung", "Peer-Assessment", "Lerntagebuch", "Fallstudienbearbeitung"];
+const MEDIEN_OPTIONEN = ["Beamer / Präsentation", "Whiteboard / Tafel", "Flipchart", "Handout / Arbeitsblatt", "Laptop / Tablet (Studierende)", "Moodle / LMS", "Audio / Video", "Padlet / digitales Whiteboard", "Skript / Lehrbuch", "Mentimeter / Kahoot"];
+
+function seedMethods() {
+  return [
+    { id: uid(), name: "Impulsvortrag / Vorlesung", beschreibung: "Kompakte Wissensvermittlung durch die Lehrperson, ggf. mit Folien.", gruppengroesse: "Plenum", zeitbedarf: "15–45 Min.", kategorie: "Wissensvermittlung", custom: false },
+    { id: uid(), name: "Think-Pair-Share", beschreibung: "Einzeln nachdenken, dann mit Partner:in austauschen, danach im Plenum teilen.", gruppengroesse: "Einzeln/Paar/Plenum", zeitbedarf: "10–15 Min.", kategorie: "Aktivierung", custom: false },
+    { id: uid(), name: "Gruppenarbeit", beschreibung: "Bearbeitung einer Aufgabe in Kleingruppen mit anschließender Ergebnispräsentation.", gruppengroesse: "3–6 Personen", zeitbedarf: "20–40 Min.", kategorie: "Aktivierung", custom: false },
+    { id: uid(), name: "Fallstudienarbeit", beschreibung: "Analyse und Diskussion eines realitätsnahen Falls in Kleingruppen.", gruppengroesse: "Kleingruppen", zeitbedarf: "45–90 Min.", kategorie: "Anwendung", custom: false },
+    { id: uid(), name: "Diskussion / Debatte", beschreibung: "Strukturierter Meinungsaustausch oder Pro-Contra-Debatte im Plenum.", gruppengroesse: "Plenum", zeitbedarf: "20–30 Min.", kategorie: "Reflexion & Feedback", custom: false },
+    { id: uid(), name: "Peer Review", beschreibung: "Studierende geben sich gegenseitig strukturiertes Feedback zu Arbeitsergebnissen.", gruppengroesse: "Paare", zeitbedarf: "15–20 Min.", kategorie: "Reflexion & Feedback", custom: false },
+    { id: uid(), name: "Flipped Classroom", beschreibung: "Wissensvermittlung im Selbststudium vorab, Präsenzzeit für Anwendung/Vertiefung.", gruppengroesse: "Selbststudium + Plenum", zeitbedarf: "variabel", kategorie: "Selbststudium", custom: false },
+    { id: uid(), name: "Projektarbeit", beschreibung: "Längerfristige, selbstständige Bearbeitung eines Projekts in Kleingruppen.", gruppengroesse: "Kleingruppen", zeitbedarf: "mehrere Wochen", kategorie: "Anwendung", custom: false },
+    { id: uid(), name: "Rollenspiel / Simulation", beschreibung: "Praxisnahe Simulation einer Situation zur Anwendung von Wissen und Fertigkeiten.", gruppengroesse: "Kleingruppen", zeitbedarf: "20–45 Min.", kategorie: "Anwendung", custom: false },
+    { id: uid(), name: "Quiz (z.B. Kahoot)", beschreibung: "Spielerische Wiederholung und Aktivierung von Wissen mit direktem Feedback.", gruppengroesse: "Plenum", zeitbedarf: "10 Min.", kategorie: "Aktivierung", custom: false },
+    { id: uid(), name: "World Café", beschreibung: "Rotierender Austausch an mehreren Thementischen in wechselnden Kleingruppen.", gruppengroesse: "Kleingruppen, rotierend", zeitbedarf: "30–60 Min.", kategorie: "Austausch", custom: false },
+    { id: uid(), name: "One-Minute Paper", beschreibung: "Kurzes schriftliches Feedback am Ende der Sitzung (Kernpunkt & offene Frage).", gruppengroesse: "Einzeln", zeitbedarf: "5 Min.", kategorie: "Reflexion & Feedback", custom: false }
+  ];
+}
+
+function defaultState() { return { courses: [], methods: seedMethods() }; }
+
+function migrateState(s) {
+  (s.courses || []).forEach(c => {
+    if (!c.sitzungen) c.sitzungen = [];
+    (c.lernziele || []).forEach(z => {
+      if (!z.methodenIds) z.methodenIds = [];
+      if (z.pruefungsform === undefined) z.pruefungsform = "";
+    });
+  });
+}
+
+let state = null;
+
+async function loadPlannerAll() {
+  if (sb) {
+    const remote = await dbGet(REMOTE_KEY);
+    state = remote || tryParse(localStorage.getItem(LOCAL_CACHE_KEY)) || defaultState();
+    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(state));
+  } else {
+    state = tryParse(localStorage.getItem(LOCAL_CACHE_KEY)) || defaultState();
+  }
+  migrateState(state);
+}
+
+function saveState() {
+  localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(state));
+  dbSet(REMOTE_KEY, state);
+}
+
+let route = { view: "kurse", id: null, tab: "uebersicht" };
+let methodFilter = "Alle";
+
+function newCourse(overrides) {
+  return Object.assign({
+    id: uid(),
+    titel: "Neue Lehrveranstaltung",
+    kurzbeschreibung: "",
+    semester: "",
+    ects: "",
+    sws: "",
+    zielgruppe: "",
+    istVorlage: false,
+    lernziele: [],
+    methoden: [],
+    sitzungen: []
+  }, overrides || {});
+}
+
+function getCourse(id) { return state.courses.find(c => c.id === id); }
+
+function duplicateCourse(id, alsVorlage) {
+  const orig = getCourse(id);
+  if (!orig) return;
+  const copy = JSON.parse(JSON.stringify(orig));
+  copy.id = uid();
+  copy.istVorlage = !!alsVorlage;
+  copy.titel = alsVorlage ? orig.titel + " (Vorlage)" : orig.titel + " (Kopie)";
+  copy.lernziele = copy.lernziele.map(z => Object.assign({}, z, { id: uid(), methodenIds: (z.methodenIds || []).slice() }));
+  copy.methoden = copy.methoden.map(m => Object.assign({}, m));
+  copy.sitzungen = (copy.sitzungen || []).map(s => Object.assign({}, s, {
+    id: uid(),
+    schritte: (s.schritte || []).map(st => Object.assign({}, st, { id: uid() }))
+  }));
+  state.courses.push(copy);
+  saveState();
+  return copy.id;
+}
+
+function renderPlanner() {
+  document.getElementById('loading-planner').style.display = 'none';
+  const app = document.getElementById("app");
+  app.style.display = 'flex';
+  app.innerHTML = `
+    ${renderSidebar()}
+    <main>${renderMain()}</main>
+  `;
+}
+
+function renderSidebar() {
+  const items = [
+    { key: "kurse", label: "📚 Kurse" },
+    { key: "vorlagen", label: "🗂 Vorlagen" },
+    { key: "methoden", label: "🧩 Methodenbaukasten" }
+  ];
+  return `
+    <div class="sidebar">
+      <h1>Navigation</h1>
+      ${items.map(it => `
+        <div class="nav-item ${route.view === it.key ? 'active' : ''}" onclick="goTo('${it.key}')">${it.label}</div>
+      `).join("")}
+      <div class="nav-sep"></div>
+      <div class="nav-item" onclick="exportBackup()">⬇️ Backup exportieren</div>
+      <div class="nav-item" onclick="document.getElementById('importFile').click()">⬆️ Backup importieren</div>
+      <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importBackup(event)">
+    </div>
+  `;
+}
+
+function goTo(view, id, tab) {
+  if (!(view === "kursdetail" && tab === "lernziele")) {
+    editingLernzielId = null;
+  }
+  route = { view, id: id || null, tab: tab || "uebersicht" };
+  renderPlanner();
+}
+
+function renderMain() {
+  if (route.view === "kurse") return renderCourseList(false);
+  if (route.view === "vorlagen") return renderCourseList(true);
+  if (route.view === "methoden") return renderMethodLibrary();
+  if (route.view === "kursdetail") return renderCourseDetail();
+  return "";
+}
+
+function renderCourseList(vorlagenView) {
+  const list = state.courses.filter(c => !!c.istVorlage === vorlagenView);
+  const title = vorlagenView ? "Vorlagen" : "Meine Lehrveranstaltungen";
+  const addLabel = vorlagenView ? "+ Neue Vorlage" : "+ Neue Lehrveranstaltung";
+
+  const cards = list.map(c => `
+    <div class="card">
+      <h3 style="cursor:pointer" onclick="goTo('kursdetail','${c.id}')">${escapeHtml(c.titel)}</h3>
+      <div class="meta">${[c.semester, c.ects ? c.ects + " ECTS" : "", c.sws ? c.sws + " SWS" : ""].filter(Boolean).join(" · ") || "Keine Angaben"}</div>
+      <div>
+        <span class="tag">${c.lernziele.length} Lernziel${c.lernziele.length === 1 ? "" : "e"}</span>
+        <span class="tag orange">${c.methoden.length} Methode${c.methoden.length === 1 ? "" : "n"}</span>
+        <span class="tag green">${(c.sitzungen || []).length} Sitzung${(c.sitzungen || []).length === 1 ? "" : "en"}</span>
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn small secondary" onclick="goTo('kursdetail','${c.id}')">Öffnen</button>
+        ${vorlagenView
+          ? `<button class="btn small secondary" onclick="useTemplate('${c.id}')">Als neuen Kurs verwenden</button>`
+          : `<button class="btn small secondary" onclick="duplicateCourse('${c.id}', true); renderPlanner();">Als Vorlage speichern</button>`
+        }
+        <button class="btn small danger" onclick="confirmDeleteCourse('${c.id}')">Löschen</button>
+      </div>
+    </div>
+  `).join("");
+
+  return `
+    <div class="topbar">
+      <h2>${title}</h2>
+      <div class="btn-row">
+        <button class="btn" onclick="createCourse(${vorlagenView})">${addLabel}</button>
+      </div>
+    </div>
+    ${list.length ? `<div class="planner-grid">${cards}</div>` : `<div class="empty">${vorlagenView ? "Noch keine Vorlagen vorhanden. Speichere einen Kurs als Vorlage oder lege hier eine neue an." : "Noch keine Lehrveranstaltungen angelegt. Leg direkt los oder starte aus einer Vorlage."}</div>`}
+  `;
+}
+
+function createCourse(alsVorlage) {
+  const c = newCourse({ istVorlage: !!alsVorlage });
+  state.courses.push(c);
+  saveState();
+  goTo("kursdetail", c.id, "uebersicht");
+}
+
+function useTemplate(id) {
+  const newId = duplicateCourse(id, false);
+  goTo("kursdetail", newId, "uebersicht");
+}
+
+function confirmDeleteCourse(id) {
+  const c = getCourse(id);
+  if (!c) return;
+  if (confirm(`"${c.titel}" wirklich löschen? Das kann nicht rückgängig gemacht werden.`)) {
+    state.courses = state.courses.filter(x => x.id !== id);
+    saveState();
+    renderPlanner();
+  }
+}
+
+function renderCourseDetail() {
+  const c = getCourse(route.id);
+  if (!c) return `<div class="empty">Kurs nicht gefunden.</div>`;
+
+  const tabs = [
+    { key: "uebersicht", label: "Übersicht" },
+    { key: "lernziele", label: "Lernziele & Kompetenzen" },
+    { key: "methoden", label: "Methoden" },
+    { key: "ablauf", label: "Ablaufplan" }
+  ];
+
+  let body = "";
+  if (route.tab === "uebersicht") body = renderTabUebersicht(c);
+  else if (route.tab === "lernziele") body = renderTabLernziele(c);
+  else if (route.tab === "methoden") body = renderTabMethoden(c);
+  else if (route.tab === "ablauf") body = renderTabAblauf(c);
+
+  return `
+    <span class="back-link" onclick="goTo('${c.istVorlage ? 'vorlagen' : 'kurse'}')">← Zurück zur Übersicht</span>
+    <div class="topbar">
+      <h2>${escapeHtml(c.titel)} ${c.istVorlage ? '<span class="badge-vorlage">Vorlage</span>' : ''}</h2>
+      <div class="btn-row no-print">
+        <button class="btn secondary" onclick="window.print()">🖨 Drucken / PDF</button>
+      </div>
+    </div>
+    <div class="tabs">
+      ${tabs.map(t => `<div class="tab ${route.tab === t.key ? 'active' : ''}" onclick="goTo('kursdetail','${c.id}','${t.key}')">${t.label}</div>`).join("")}
+    </div>
+    ${body}
+  `;
+}
+
+function renderTabUebersicht(c) {
+  return `
+    <div class="card">
+      <label>Titel</label>
+      <input type="text" value="${attr(c.titel)}" oninput="updateCourseField('${c.id}','titel',this.value)">
+      <div class="row3">
+        <div>
+          <label>Semester</label>
+          <input type="text" placeholder="z.B. WS 2026/27" value="${attr(c.semester)}" oninput="updateCourseField('${c.id}','semester',this.value)">
+        </div>
+        <div>
+          <label>ECTS</label>
+          <input type="text" value="${attr(c.ects)}" oninput="updateCourseField('${c.id}','ects',this.value)">
+        </div>
+        <div>
+          <label>SWS</label>
+          <input type="text" value="${attr(c.sws)}" oninput="updateCourseField('${c.id}','sws',this.value)">
+        </div>
+      </div>
+      <label>Zielgruppe</label>
+      <input type="text" placeholder="z.B. Bachelor BWL, 3. Semester" value="${attr(c.zielgruppe)}" oninput="updateCourseField('${c.id}','zielgruppe',this.value)">
+      <label>Kurzbeschreibung / Inhalte</label>
+      <textarea rows="5" oninput="updateCourseField('${c.id}','kurzbeschreibung',this.value)">${escapeHtml(c.kurzbeschreibung)}</textarea>
+    </div>
+  `;
+}
+
+function updateCourseField(id, field, value) {
+  const c = getCourse(id);
+  if (!c) return;
+  c[field] = value;
+  saveState();
+}
+
+let editingLernzielId = null;
+
+function renderTabLernziele(c) {
+  const editing = editingLernzielId ? c.lernziele.find(z => z.id === editingLernzielId) : null;
+
+  const methodCheckboxes = state.methods.map(m => `
+    <label style="display:flex; align-items:center; gap:6px; font-weight:400; margin:4px 0; font-size:13.5px;">
+      <input type="checkbox" class="lz-methode-cb" value="${m.id}" ${editing && editing.methodenIds.includes(m.id) ? "checked" : ""}>
+      ${escapeHtml(m.name)}
+    </label>
+  `).join("");
+
+  const items = c.lernziele.map(z => {
+    const methodNames = (z.methodenIds || []).map(id => {
+      const m = state.methods.find(x => x.id === id);
+      return m ? m.name : null;
+    }).filter(Boolean);
+    const complete = methodNames.length > 0 && (z.pruefungsform || "").trim().length > 0;
+    return `
+    <div class="list-item">
+      <div class="content">
+        <div class="title">${escapeHtml(z.text)}</div>
+        <div class="sub" style="margin-bottom:8px">
+          <span class="tag">${z.taxonomie}</span>
+          <span class="tag green">${z.kompetenz}</span>
+        </div>
+        <div class="sub" style="line-height:1.9">
+          <strong>Lehr-/Lernaktivität:</strong>
+          ${methodNames.length ? methodNames.map(n => `<span class="tag orange">${escapeHtml(n)}</span>`).join(" ") : '<em>keine zugeordnet</em>'}
+          <br>
+          <strong>Prüfungsform:</strong> ${z.pruefungsform ? escapeHtml(z.pruefungsform) : '<em>nicht festgelegt</em>'}
+        </div>
+        <div style="margin-top:8px">
+          ${complete
+            ? '<span class="tag green">✓ konstruktiv ausgerichtet</span>'
+            : '<span class="tag orange">⚠ Ausrichtung unvollständig</span>'}
+        </div>
+      </div>
+      <div class="btn-row" style="flex-direction:column">
+        <button class="btn small secondary" onclick="editLernziel('${c.id}','${z.id}')">Bearbeiten</button>
+        <button class="btn small danger" onclick="removeLernziel('${c.id}','${z.id}')">Entfernen</button>
+      </div>
+    </div>
+  `;
+  }).join("");
+
+  return `
+    <div class="card" style="margin-bottom:18px">
+      <div class="hint" style="margin-bottom:12px">
+        Constructive Alignment: Lernziel, Lehr-/Lernaktivität und Prüfungsform sollen aufeinander abgestimmt sein –
+        was gelernt werden soll, sollte auch geübt und in gleicher Form geprüft werden.
+      </div>
+      <label>${editing ? "Lernziel bearbeiten" : "Neues Lernziel"}</label>
+      <textarea id="new-lernziel-text" rows="2" placeholder="z.B. Studierende können die zentralen Theorien X anwenden, um Y zu analysieren.">${editing ? escapeHtml(editing.text) : ""}</textarea>
+      <div class="row2">
+        <div>
+          <label>Taxonomiestufe (Bloom)</label>
+          <select id="new-lernziel-taxonomie">
+            ${TAXONOMIE_STUFEN.map(t => `<option value="${t}" ${editing && editing.taxonomie === t ? "selected" : ""}>${t}</option>`).join("")}
+          </select>
+        </div>
+        <div>
+          <label>Kompetenztyp</label>
+          <select id="new-lernziel-kompetenz">
+            ${KOMPETENZ_TYPEN.map(k => `<option value="${k}" ${editing && editing.kompetenz === k ? "selected" : ""}>${k}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <label>Lehr-/Lernaktivität(en) (aus Methodenbaukasten)</label>
+      <div style="max-height:150px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; padding:8px 12px; background:#fafafa;">
+        ${methodCheckboxes || '<span class="hint">Noch keine Methoden im Baukasten vorhanden.</span>'}
+      </div>
+      <label>Prüfungsform / Assessment</label>
+      <input type="text" id="new-lernziel-pruefung" list="pruefungsform-optionen" placeholder="z.B. Klausur, mündliche Prüfung, Projektarbeit..." value="${editing ? attr(editing.pruefungsform) : ""}">
+      <datalist id="pruefungsform-optionen">
+        ${PRUEFUNGSFORMEN.map(p => `<option value="${p}">`).join("")}
+      </datalist>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn" onclick="saveLernziel('${c.id}')">${editing ? "Aktualisieren" : "+ Lernziel hinzufügen"}</button>
+        ${editing ? `<button class="btn secondary" onclick="cancelEditLernziel()">Abbrechen</button>` : ""}
+      </div>
+    </div>
+    ${items || `<div class="empty">Noch keine Lernziele definiert.</div>`}
+  `;
+}
+
+function saveLernziel(courseId) {
+  const c = getCourse(courseId);
+  const text = document.getElementById("new-lernziel-text").value.trim();
+  if (!text) return;
+  const taxonomie = document.getElementById("new-lernziel-taxonomie").value;
+  const kompetenz = document.getElementById("new-lernziel-kompetenz").value;
+  const pruefungsform = document.getElementById("new-lernziel-pruefung").value.trim();
+  const methodenIds = Array.from(document.querySelectorAll(".lz-methode-cb:checked")).map(cb => cb.value);
+
+  if (editingLernzielId) {
+    const z = c.lernziele.find(z => z.id === editingLernzielId);
+    Object.assign(z, { text, taxonomie, kompetenz, pruefungsform, methodenIds });
+    editingLernzielId = null;
+  } else {
+    c.lernziele.push({ id: uid(), text, taxonomie, kompetenz, pruefungsform, methodenIds });
+  }
+  saveState();
+  goTo("kursdetail", courseId, "lernziele");
+}
+
+function editLernziel(courseId, zielId) {
+  editingLernzielId = zielId;
+  goTo("kursdetail", courseId, "lernziele");
+}
+
+function cancelEditLernziel() {
+  editingLernzielId = null;
+  renderPlanner();
+}
+
+function removeLernziel(courseId, zielId) {
+  const c = getCourse(courseId);
+  c.lernziele = c.lernziele.filter(z => z.id !== zielId);
+  if (editingLernzielId === zielId) editingLernzielId = null;
+  saveState();
+  renderPlanner();
+}
+
+function renderTabMethoden(c) {
+  const assigned = c.methoden.map(m => {
+    const method = state.methods.find(x => x.id === m.methodId);
+    if (!method) return "";
+    return `
+      <div class="list-item">
+        <div class="content">
+          <div class="title">${escapeHtml(method.name)}</div>
+          <div class="sub">${method.gruppengroesse} · ${method.zeitbedarf} · <span class="tag">${method.kategorie}</span></div>
+          ${m.notiz ? `<div class="sub" style="margin-top:6px">📝 ${escapeHtml(m.notiz)}</div>` : ""}
+        </div>
+        <button class="btn small danger" onclick="removeMethodFromCourse('${c.id}','${m.methodId}')">Entfernen</button>
+      </div>
+    `;
+  }).join("");
+
+  const available = state.methods.filter(m => !c.methoden.some(cm => cm.methodId === m.id));
+
+  return `
+    <div class="card" style="margin-bottom:18px">
+      <label>Methode aus Baukasten zuordnen</label>
+      <select id="new-method-select">
+        ${available.map(m => `<option value="${m.id}">${m.name}</option>`).join("")}
+      </select>
+      <label>Notiz (optional, z.B. für welche Sitzung/Phase)</label>
+      <input type="text" id="new-method-notiz" placeholder="z.B. Einsatz in Sitzung 4">
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn" onclick="addMethodToCourse('${c.id}')" ${available.length ? "" : "disabled"}>+ Methode zuordnen</button>
+        <button class="btn secondary" onclick="goTo('methoden')">Methodenbaukasten öffnen</button>
+      </div>
+      ${available.length ? "" : `<div class="hint">Alle vorhandenen Methoden sind bereits zugeordnet. Lege im Methodenbaukasten weitere an.</div>`}
+    </div>
+    ${assigned || `<div class="empty">Diesem Kurs sind noch keine Methoden zugeordnet.</div>`}
+  `;
+}
+
+function addMethodToCourse(courseId) {
+  const c = getCourse(courseId);
+  const select = document.getElementById("new-method-select");
+  if (!select || !select.value) return;
+  const notiz = document.getElementById("new-method-notiz").value.trim();
+  c.methoden.push({ methodId: select.value, notiz });
+  saveState();
+  goTo("kursdetail", courseId, "methoden");
+}
+
+function removeMethodFromCourse(courseId, methodId) {
+  const c = getCourse(courseId);
+  c.methoden = c.methoden.filter(m => m.methodId !== methodId);
+  saveState();
+  renderPlanner();
+}
+
+function renderTabAblauf(c) {
+  const sitzungenHtml = c.sitzungen.map((s, idx) => renderSitzung(c, s, idx)).join("");
+  return `
+    <div class="hint" style="margin-bottom:14px">
+      Halte für jede Sitzung den zeitlichen Ablauf mit Inhalten, Methode und eingesetzten Medien fest.
+    </div>
+    ${sitzungenHtml || `<div class="empty">Noch keine Sitzung angelegt.</div>`}
+    <div class="btn-row no-print" style="margin-top:10px">
+      <button class="btn" onclick="addSitzung('${c.id}')">+ Neue Sitzung</button>
+    </div>
+    <datalist id="medien-optionen">
+      ${MEDIEN_OPTIONEN.map(m => `<option value="${m}">`).join("")}
+    </datalist>
+    <datalist id="methoden-optionen">
+      ${state.methods.map(m => `<option value="${attr(m.name)}">`).join("")}
+    </datalist>
+  `;
+}
+
+function renderSitzung(c, s, idx) {
+  const rows = s.schritte.map((st, i) => `
+    <tr>
+      <td style="width:110px"><input type="text" value="${attr(st.zeit)}" placeholder="09:00–09:15" oninput="updateSchrittField('${c.id}','${s.id}','${st.id}','zeit',this.value)"></td>
+      <td><input type="text" value="${attr(st.inhalt)}" placeholder="Inhalt / Phase" oninput="updateSchrittField('${c.id}','${s.id}','${st.id}','inhalt',this.value)"></td>
+      <td style="width:190px"><input type="text" value="${attr(st.methode)}" list="methoden-optionen" placeholder="Methode" oninput="updateSchrittField('${c.id}','${s.id}','${st.id}','methode',this.value)"></td>
+      <td style="width:190px"><input type="text" value="${attr(st.medien)}" list="medien-optionen" placeholder="Medien" oninput="updateSchrittField('${c.id}','${s.id}','${st.id}','medien',this.value)"></td>
+      <td class="no-print" style="width:110px; white-space:nowrap">
+        <button class="btn small secondary" title="Nach oben" onclick="moveSchritt('${c.id}','${s.id}','${st.id}',-1)" ${i === 0 ? "disabled" : ""}>↑</button>
+        <button class="btn small secondary" title="Nach unten" onclick="moveSchritt('${c.id}','${s.id}','${st.id}',1)" ${i === s.schritte.length - 1 ? "disabled" : ""}>↓</button>
+        <button class="btn small danger" onclick="removeSchritt('${c.id}','${s.id}','${st.id}')">✕</button>
+      </td>
+    </tr>
+  `).join("");
+
+  return `
+    <div class="card" style="margin-bottom:18px">
+      <div class="row2">
+        <div>
+          <label>Sitzung / Thema</label>
+          <input type="text" value="${attr(s.titel)}" placeholder="z.B. Sitzung 1: Einführung" oninput="updateSitzungField('${c.id}','${s.id}','titel',this.value)">
+        </div>
+        <div>
+          <label>Datum (optional)</label>
+          <input type="text" value="${attr(s.datum)}" placeholder="z.B. 05.10.2026" oninput="updateSitzungField('${c.id}','${s.id}','datum',this.value)">
+        </div>
+      </div>
+      <table style="width:100%; border-collapse:collapse; margin-top:14px; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; color:var(--muted); font-size:12.5px">
+            <th style="padding:4px">Zeit</th>
+            <th style="padding:4px">Inhalte</th>
+            <th style="padding:4px">Methode</th>
+            <th style="padding:4px">Medien</th>
+            <th class="no-print"></th>
+          </tr>
+        </thead>
+        <tbody>${rows || `<tr><td colspan="5" style="padding:10px; color:var(--muted)">Noch keine Ablaufschritte.</td></tr>`}</tbody>
+      </table>
+      <div class="btn-row no-print" style="margin-top:12px">
+        <button class="btn small secondary" onclick="addSchritt('${c.id}','${s.id}')">+ Ablaufschritt hinzufügen</button>
+        <button class="btn small danger" onclick="removeSitzung('${c.id}','${s.id}')">Sitzung löschen</button>
+      </div>
+    </div>
+  `;
+}
+
+function addSitzung(courseId) {
+  const c = getCourse(courseId);
+  c.sitzungen.push({ id: uid(), titel: `Sitzung ${c.sitzungen.length + 1}`, datum: "", schritte: [] });
+  saveState();
+  renderPlanner();
+}
+
+function updateSitzungField(courseId, sitzungId, field, value) {
+  const c = getCourse(courseId);
+  const s = c.sitzungen.find(x => x.id === sitzungId);
+  if (!s) return;
+  s[field] = value;
+  saveState();
+}
+
+function removeSitzung(courseId, sitzungId) {
+  if (!confirm("Diese Sitzung inkl. Ablaufplan wirklich löschen?")) return;
+  const c = getCourse(courseId);
+  c.sitzungen = c.sitzungen.filter(s => s.id !== sitzungId);
+  saveState();
+  renderPlanner();
+}
+
+function addSchritt(courseId, sitzungId) {
+  const c = getCourse(courseId);
+  const s = c.sitzungen.find(x => x.id === sitzungId);
+  if (!s) return;
+  s.schritte.push({ id: uid(), zeit: "", inhalt: "", methode: "", medien: "" });
+  saveState();
+  renderPlanner();
+}
+
+function updateSchrittField(courseId, sitzungId, schrittId, field, value) {
+  const c = getCourse(courseId);
+  const s = c.sitzungen.find(x => x.id === sitzungId);
+  if (!s) return;
+  const st = s.schritte.find(x => x.id === schrittId);
+  if (!st) return;
+  st[field] = value;
+  saveState();
+}
+
+function removeSchritt(courseId, sitzungId, schrittId) {
+  const c = getCourse(courseId);
+  const s = c.sitzungen.find(x => x.id === sitzungId);
+  if (!s) return;
+  s.schritte = s.schritte.filter(x => x.id !== schrittId);
+  saveState();
+  renderPlanner();
+}
+
+function moveSchritt(courseId, sitzungId, schrittId, dir) {
+  const c = getCourse(courseId);
+  const s = c.sitzungen.find(x => x.id === sitzungId);
+  if (!s) return;
+  const idx = s.schritte.findIndex(x => x.id === schrittId);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= s.schritte.length) return;
+  const tmp = s.schritte[idx];
+  s.schritte[idx] = s.schritte[newIdx];
+  s.schritte[newIdx] = tmp;
+  saveState();
+  renderPlanner();
+}
+
+function renderMethodLibrary() {
+  const cats = ["Alle", ...METHODEN_KATEGORIEN];
+  const list = state.methods.filter(m => methodFilter === "Alle" || m.kategorie === methodFilter);
+
+  const cards = list.map(m => `
+    <div class="card">
+      <h3>${escapeHtml(m.name)} ${m.custom ? '<span class="tag">eigene</span>' : ''}</h3>
+      <div class="meta">${m.gruppengroesse} · ${m.zeitbedarf}</div>
+      <div style="font-size:13.5px; margin-bottom:10px; color:var(--text)">${escapeHtml(m.beschreibung)}</div>
+      <span class="tag orange">${m.kategorie}</span>
+      ${m.custom ? `
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn small secondary" onclick="editMethod('${m.id}')">Bearbeiten</button>
+          <button class="btn small danger" onclick="deleteMethod('${m.id}')">Löschen</button>
+        </div>` : ""}
+    </div>
+  `).join("");
+
+  return `
+    <div class="topbar">
+      <h2>Methodenbaukasten</h2>
+      <div class="btn-row">
+        <button class="btn" onclick="openMethodModal()">+ Neue Methode</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      ${cats.map(cat => `<div class="chip ${methodFilter === cat ? 'active' : ''}" onclick="setMethodFilter('${cat}')">${cat}</div>`).join("")}
+    </div>
+    ${list.length ? `<div class="planner-grid">${cards}</div>` : `<div class="empty">Keine Methoden in dieser Kategorie.</div>`}
+    ${modalHtml}
+  `;
+}
+
+function setMethodFilter(cat) { methodFilter = cat; renderPlanner(); }
+
+let modalHtml = "";
+let editingMethodId = null;
+
+function openMethodModal(id) {
+  editingMethodId = id || null;
+  const m = id ? state.methods.find(x => x.id === id) : { name: "", beschreibung: "", gruppengroesse: "", zeitbedarf: "", kategorie: METHODEN_KATEGORIEN[0] };
+  modalHtml = `
+    <div class="modal-overlay" onclick="closeModalIfOverlay(event)">
+      <div class="modal">
+        <h3>${id ? "Methode bearbeiten" : "Neue Methode"}</h3>
+        <label>Name</label>
+        <input type="text" id="m-name" value="${attr(m.name)}">
+        <label>Beschreibung</label>
+        <textarea id="m-beschreibung" rows="3">${escapeHtml(m.beschreibung)}</textarea>
+        <div class="row2">
+          <div>
+            <label>Gruppengröße</label>
+            <input type="text" id="m-gruppengroesse" value="${attr(m.gruppengroesse)}">
+          </div>
+          <div>
+            <label>Zeitbedarf</label>
+            <input type="text" id="m-zeitbedarf" value="${attr(m.zeitbedarf)}">
+          </div>
+        </div>
+        <label>Kategorie</label>
+        <select id="m-kategorie">
+          ${METHODEN_KATEGORIEN.map(k => `<option value="${k}" ${k === m.kategorie ? "selected" : ""}>${k}</option>`).join("")}
+        </select>
+        <div class="btn-row" style="margin-top:18px">
+          <button class="btn" onclick="saveMethodModal()">Speichern</button>
+          <button class="btn secondary" onclick="closeModal()">Abbrechen</button>
+        </div>
+      </div>
+    </div>
+  `;
+  renderPlanner();
+}
+
+function closeModal() { modalHtml = ""; editingMethodId = null; renderPlanner(); }
+function closeModalIfOverlay(e) { if (e.target.classList.contains("modal-overlay")) closeModal(); }
+
+function saveMethodModal() {
+  const data = {
+    name: document.getElementById("m-name").value.trim() || "Unbenannte Methode",
+    beschreibung: document.getElementById("m-beschreibung").value.trim(),
+    gruppengroesse: document.getElementById("m-gruppengroesse").value.trim(),
+    zeitbedarf: document.getElementById("m-zeitbedarf").value.trim(),
+    kategorie: document.getElementById("m-kategorie").value,
+    custom: true
+  };
+  if (editingMethodId) {
+    const m = state.methods.find(x => x.id === editingMethodId);
+    Object.assign(m, data);
+  } else {
+    data.id = uid();
+    state.methods.push(data);
+  }
+  saveState();
+  closeModal();
+}
+
+function editMethod(id) { openMethodModal(id); }
+
+function deleteMethod(id) {
+  if (!confirm("Diese Methode wirklich löschen? Sie wird auch aus allen Kursen entfernt.")) return;
+  state.methods = state.methods.filter(m => m.id !== id);
+  state.courses.forEach(c => { c.methoden = c.methoden.filter(m => m.methodId !== id); });
+  saveState();
+  renderPlanner();
+}
+
+function exportBackup() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "lehrveranstaltungsplaner-backup-" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!imported.courses || !imported.methods) throw new Error("Ungültiges Format");
+      if (confirm("Backup importieren? Der aktuelle Stand wird dabei überschrieben (auch in Supabase).")) {
+        state = imported;
+        migrateState(state);
+        saveState();
+        route = { view: "kurse", id: null, tab: "uebersicht" };
+        renderPlanner();
+      }
+    } catch (err) {
+      alert("Diese Datei konnte nicht als Backup gelesen werden.");
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = "";
+}
+
+function escapeHtml(str) {
+  if (str === undefined || str === null) return "";
+  return String(str).replace(/[&<>"']/g, s => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));
+}
+function attr(str) { return escapeHtml(str); }
 
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
 (async () => {
-  const configured = initSupabase();
-  if (!configured) showSetupBanner();
-  await loadAll();
-  render();
+const configured = initSupabase();
+if (!configured) showSetupBanner();
+await Promise.all([loadAll(), loadPlannerAll()]);
+render();
+renderPlanner();
+wireViewSwitch();
+switchView('aufgaben');
 })();
 </script>
 </body>
